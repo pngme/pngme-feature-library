@@ -7,9 +7,11 @@ from pngme.api import Client
 token = os.environ["PNGME_TOKEN"]
 client = Client(token)
 
+
 # Fetch a list of a user's financial accounts.
 user_uuid = "33b6215d-3d75-4271-801c-6da27603a8be"
 accounts = client.accounts.get(user_uuid)
+
 
 # Fetch transactions across all accounts for the last 90 days.
 utc_endtime = datetime(2021, 12, 31)
@@ -25,6 +27,7 @@ for account in accounts:
         utc_endtime=utc_endtime
     )
     transactions = [*transactions, *transactions_in_account]
+
 
 # Load transactions into a pandas dataframe.
 transactions_df = pd.DataFrame([transaction.dict() for transaction in transactions])

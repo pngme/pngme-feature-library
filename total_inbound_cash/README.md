@@ -53,7 +53,7 @@ total_inbound_cash_last_30_days = transactions_df[
     (transactions_df.impact == "CREDIT")
     # Exclude loan related transactions
     & (~transactions_df.account_type.isin(["loan", "revolving_loan"]))
-].amount.sum() # TODO: specify currency
+].amount.sum()
 ```
 
 ## Next steps
