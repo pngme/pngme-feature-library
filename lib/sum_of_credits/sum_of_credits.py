@@ -13,7 +13,7 @@ import pandas as pd
 
 
 def sum_of_credits(
-    api_client: Client, user_uuid: str, epoch_start: datetime, epoch_end: datetime
+    api_client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
 ) -> float:
     """Calculates the sum of credit-type transactions for a given user across all
      depository accounts in a given period. No currency conversions are performed.
@@ -21,8 +21,8 @@ def sum_of_credits(
     Args:
         api_client: Pngme API client
         user_uuid: the Pngme user_uuid for the mobile phone user
-        epoch_start: the datetime for the left-hand-side of the time-window
-        epoch_end: the datetime for the right-hand-side of the time-window
+        utc_starttime: the datetime for the left-hand-side of the time-window
+        utc_endtime: the datetime for the right-hand-side of the time-window
 
     Returns:
         the sum total of all credit transaction amounts
@@ -35,8 +35,8 @@ def sum_of_credits(
         transaction_response = api_client.transactions.get(
             user_uuid=user_uuid,
             account_uuid=individual_account.acct_uuid,
-            utc_starttime=epoch_start,
-            utc_endtime=epoch_end,
+            utc_starttime=utc_starttime,
+            utc_endtime=utc_endtime,
         )
         record_list.extend([dict(entry) for entry in transaction_response])
     record_df = pd.DataFrame(record_list)
