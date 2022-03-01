@@ -24,5 +24,5 @@ export PNGME_TOKEN="eyJraWQiOiJcL3d..."
 ```bash
 python3 main.py
 
-# 93529
+# 13404
 ```
