@@ -59,7 +59,7 @@ if __name__ == "__main__":
 
     client = Client(access_token=API_TOKEN)
 
-    utc_endtime = datetime(2021, 3, 1)
+    utc_endtime = datetime(2022, 3, 1)
     utc_starttime = utc_endtime - timedelta(days=30)
     # For a short period time, number of unique accounts in the record
     # is a good approximation for approved/disbursed loan count
