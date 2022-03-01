@@ -12,15 +12,15 @@ import pandas as pd
 
 
 def count_opened_loans(
-    api_client: Client, user_uuid: str, epoch_start: datetime, epoch_end: datetime
+    api_client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
 ) -> int:
     """Count number of unique institutions in approved or disbursed loans in a period
 
     Args:
         api_client: Pngme API client
         user_uuid: the Pngme user_uuid for the mobile phone user
-        epoch_start: datetime for the left-hand-side of the time-window
-        epoch_end: datetime for the right-hand-side of the time-window
+        utc_starttime: datetime for the left-hand-side of the time-window
+        utc_endtime: datetime for the right-hand-side of the time-window
 
     Returns: Int
     """
@@ -36,8 +36,8 @@ def count_opened_loans(
             user_uuid=user_uuid,
             account_uuid=account_uuid,
             labels=["LoanApproved", "LoanDisbursed"],
-            utc_starttime=epoch_start,
-            utc_endtime=epoch_end,
+            utc_starttime=utc_starttime,
+            utc_endtime=utc_endtime,
         )
         for entry in alert_response:
             entry_dict = dict(entry)
@@ -66,6 +66,6 @@ if __name__ == "__main__":
     count_opened_loans_0_30 = count_opened_loans(
         api_client=client,
         user_uuid=USER_UUID,
-        epoch_start=utc_starttime,
-        epoch_end=utc_endtime,
+        utc_starttime=utc_starttime,
+        utc_endtime=utc_endtime,
     )
