@@ -1,2 +1,2 @@
 pandas
-git+ssh://git@github.com/pngme/pngme-api.git@main#egg=pngme-api
+pngme-api
