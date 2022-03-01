@@ -9,35 +9,6 @@ import pandas as pd
 import pendulum
 
 
-API_TOKEN = "MY_API_TOKEN"  # paste token here to run script
-
-
-def _construct_alert_df(api_client: Client, user_uuid: str) -> pd.DataFrame:
-    """Construct user approved or disbursed loan dataframes
-    Args:
-        api_client: Pngme API client
-        user_uuid: the Pngme user_uuid for the mobile phone user
-    Returns:
-        DataFrame contains alert information
-    """
-    # Get account information
-    account_responses = api_client.accounts.get(user_uuid=user_uuid)
-    # Loop through account for collecting loan approval and disbursement alert info
-    alert_records = []
-    for individual_account in account_responses:
-        account_uuid = individual_account.acct_uuid
-        alert_response = api_client.alerts.get(
-            user_uuid=user_uuid,
-            account_uuid=account_uuid,
-            labels=["LoanApproved", "LoanDisbursed"],
-        )
-        for entry in alert_response:
-            entry_dict = dict(entry)
-            entry_dict["account_uuid"] = account_uuid
-            alert_records.append(entry_dict)
-    return pd.DataFrame(alert_records)
-
-
 def count_opened_loans(
     api_client: Client, user_uuid: str, epoch_start: int, epoch_end: int
 ) -> int:
@@ -51,7 +22,26 @@ def count_opened_loans(
 
     Returns: Int
     """
-    alert_df = _construct_alert_df(api_client=api_client, user_uuid=user_uuid)
+
+    # Get account information
+    account_responses = api_client.accounts.get(user_uuid=user_uuid)
+
+    # Loop through account for collecting loan approval and disbursement alert info
+    alert_records = []
+    for individual_account in account_responses:
+        account_uuid = individual_account.acct_uuid
+        alert_response = api_client.alerts.get(
+            user_uuid=user_uuid,
+            account_uuid=account_uuid,
+            labels=["LoanApproved", "LoanDisbursed"],
+        )
+        for entry in alert_response:
+            entry_dict = dict(entry)
+            entry_dict["account_uuid"] = account_uuid
+            alert_records.append(entry_dict)
+    # Construct alert record dataframe
+    alert_df = pd.DataFrame(alert_records)
+
     if alert_df.empty:
         return 0
 
@@ -62,7 +52,9 @@ def count_opened_loans(
 
 if __name__ == "__main__":
 
+    API_TOKEN = "MY_API_TOKEN"  # paste token here to run script
     USER_UUID = "c9f0624d-4e7a-41cc-964d-9ea3b268427f"
+
     client = Client(access_token=API_TOKEN)
 
     now = pendulum.now()
