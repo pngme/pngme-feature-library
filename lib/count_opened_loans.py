@@ -1,24 +1,26 @@
 #!/usr/bin/env python3
 """
-Counts the total number of loans approved and disbursed over a time period, for a given user.
-Typical date ranges are last 30 days,
+Counts the number of unique institutions that approved and/or disbursed
+one or more loans over a time period, for a given user.
+Typical date range is last 30 days.
 """
+from datetime import datetime
+from datetime import timedelta
 from pngme.api import Client
 
 import pandas as pd
-import pendulum
 
 
 def count_opened_loans(
-    api_client: Client, user_uuid: str, epoch_start: int, epoch_end: int
+    api_client: Client, user_uuid: str, epoch_start: datetime, epoch_end: datetime
 ) -> int:
     """Count number of unique institutions in approved or disbursed loans in a period
 
     Args:
         api_client: Pngme API client
         user_uuid: the Pngme user_uuid for the mobile phone user
-        epoch_start: the UTC epoch timestamp for the left-hand-side of the time-window
-        epoch_end: the UTC epoch timestamp for the left-hand-side of the time-window
+        epoch_start: datetime for the left-hand-side of the time-window
+        epoch_end: datetime for the right-hand-side of the time-window
 
     Returns: Int
     """
@@ -34,6 +36,8 @@ def count_opened_loans(
             user_uuid=user_uuid,
             account_uuid=account_uuid,
             labels=["LoanApproved", "LoanDisbursed"],
+            utc_starttime=epoch_start,
+            utc_endtime=epoch_end,
         )
         for entry in alert_response:
             entry_dict = dict(entry)
@@ -45,34 +49,23 @@ def count_opened_loans(
     if alert_df.empty:
         return 0
 
-    return alert_df[alert_df["ts"].between(epoch_start, epoch_end, inclusive="right")][
-        "account_uuid"
-    ].nunique()
+    return alert_df["account_uuid"].nunique()
 
 
 if __name__ == "__main__":
 
     API_TOKEN = "MY_API_TOKEN"  # paste token here to run script
-    USER_UUID = "c9f0624d-4e7a-41cc-964d-9ea3b268427f"
+    USER_UUID = "958a5ae8-f3a3-41d5-ae48-177fdc19e3f4"
 
     client = Client(access_token=API_TOKEN)
 
-    now = pendulum.now()
-    now_less_30 = now.subtract(days=30)
+    utc_endtime = datetime(2021, 3, 1)
+    utc_starttime = utc_endtime - timedelta(days=30)
     # For a short period time, number of unique accounts in the record
     # is a good approximation for approved/disbursed loan count
-    num_opened_loan_0_30_days = count_opened_loans(
+    count_opened_loans_0_30 = count_opened_loans(
         api_client=client,
         user_uuid=USER_UUID,
-        epoch_start=now_less_30.int_timestamp,
-        epoch_end=now.int_timestamp,
+        epoch_start=utc_starttime,
+        epoch_end=utc_endtime,
     )
-
-    df = pd.DataFrame(
-        {
-            "user_uuid": USER_UUID,
-            "number_of_opened_loans_0_30": num_opened_loan_0_30_days,
-        }
-    )
-
-    print(df.to_markdown())
