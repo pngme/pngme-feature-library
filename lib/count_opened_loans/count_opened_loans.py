@@ -22,7 +22,8 @@ def count_opened_loans(
         utc_starttime: datetime for the left-hand-side of the time-window
         utc_endtime: datetime for the right-hand-side of the time-window
 
-    Returns: Int
+    Returns:
+        Number of unique institutions
     """
 
     # Get account information
@@ -45,11 +46,11 @@ def count_opened_loans(
             alert_records.append(entry_dict)
     # Construct alert record dataframe
     alert_df = pd.DataFrame(alert_records)
-
-    if alert_df.empty:
+    if len(alert_records) == 0:
         return 0
 
-    return alert_df["account_uuid"].nunique()
+    num_account = alert_df["account_uuid"].nunique()
+    return num_account
 
 
 if __name__ == "__main__":
