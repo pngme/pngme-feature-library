@@ -8,21 +8,6 @@ from datetime import timedelta
 from pngme.api import Client
 
 import os
-import pandas as pd
-
-#!/usr/bin/env python3
-"""
-Sums of credits calculate the total inbound cash over a time period
-for a given user over all their depository accounts.
-The sum of inbound cash is a proxy for a client's income.
-Typical date ranges are last 30 days, 31-60 days and 61-90 days.
-"""
-from datetime import datetime
-from datetime import timedelta
-from pngme.api import Client
-
-import os
-import pandas as pd
 
 
 def count_insufficient_fund_events(
@@ -39,7 +24,7 @@ def count_insufficient_fund_events(
     Returns:
         the sum insufficient funds events
     """
-    INSUFFICIENT_FUNDS_LABEL = "InsufficientFunds"
+    insufficient_funds_label = "InsufficientFunds"
 
     account_details = api_client.accounts.get(user_uuid=user_uuid)
 
@@ -51,7 +36,7 @@ def count_insufficient_fund_events(
             account_uuid=individual_account.acct_uuid,
             utc_starttime=utc_starttime,
             utc_endtime=utc_endtime,
-            labels=[INSUFFICIENT_FUNDS_LABEL]
+            labels=[insufficient_funds_label]
         )
         record_list.extend([dict(record) for record in insufficient_funds_events])
 
