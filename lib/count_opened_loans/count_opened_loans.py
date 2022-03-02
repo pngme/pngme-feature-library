@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Counts the number of unique institutions that approved and/or disbursed
-one or more loans over a time period, for a given user.
+Counts the number of unique institutions with which a user has opened one or more loans
+for a given user over a period.
 Typical date range is last 30 days.
 """
 from datetime import datetime
