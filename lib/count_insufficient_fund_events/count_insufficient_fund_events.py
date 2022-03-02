@@ -13,7 +13,8 @@ import os
 def count_insufficient_fund_events(
     api_client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
 ) -> float:
-    """Calculates the sum of all events labelled with InsufficientFunds, across all institutions.
+    """
+    Calculates the sum of all events labelled with InsufficientFunds, across all institutions.
 
     Args:
         api_client: Pngme API client
