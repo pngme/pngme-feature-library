@@ -8,13 +8,14 @@ from datetime import datetime
 from datetime import timedelta
 from pngme.api import Client
 
-import pandas as pd
-
 
 def count_opened_loans(
     api_client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
 ) -> int:
-    """Count number of unique institutions in approved or disbursed loans in a period
+    """Count number of unique institutions in approved or disbursed loans in a perio
+
+    For a short period time, number of unique accounts in the record is a
+    good approximation for approved/disbursed loan count
 
     Args:
         api_client: Pngme API client
@@ -27,30 +28,23 @@ def count_opened_loans(
     """
 
     # Get account information
-    account_responses = api_client.accounts.get(user_uuid=user_uuid)
+    accounts = api_client.accounts.get(user_uuid=user_uuid)
 
     # Loop through account for collecting loan approval and disbursement alert info
-    alert_records = []
-    for individual_account in account_responses:
-        account_uuid = individual_account.acct_uuid
-        alert_response = api_client.alerts.get(
+    num_institutions = 0
+    for account in accounts:
+        account_uuid = account.acct_uuid
+        alerts = api_client.alerts.get(
             user_uuid=user_uuid,
             account_uuid=account_uuid,
             labels=["LoanApproved", "LoanDisbursed"],
             utc_starttime=utc_starttime,
             utc_endtime=utc_endtime,
         )
-        for entry in alert_response:
-            entry_dict = dict(entry)
-            entry_dict["account_uuid"] = account_uuid
-            alert_records.append(entry_dict)
-    # Construct alert record dataframe
-    alert_df = pd.DataFrame(alert_records)
-    if len(alert_records) == 0:
-        return 0
+        if len(alerts) > 0:
+            num_institutions += 1
 
-    num_account = alert_df["account_uuid"].nunique()
-    return num_account
+    return num_institutions
 
 
 if __name__ == "__main__":
@@ -60,13 +54,12 @@ if __name__ == "__main__":
 
     client = Client(access_token=API_TOKEN)
 
-    utc_endtime = datetime(2022, 3, 1)
-    utc_starttime = utc_endtime - timedelta(days=30)
-    # For a short period time, number of unique accounts in the record
-    # is a good approximation for approved/disbursed loan count
+    now = datetime(2022, 3, 1)
+    now_less_30 = now - timedelta(days=30)
+
     count_opened_loans_0_30 = count_opened_loans(
         api_client=client,
         user_uuid=USER_UUID,
-        utc_starttime=utc_starttime,
-        utc_endtime=utc_endtime,
+        utc_starttime=now_less_30,
+        utc_endtime=now,
     )
