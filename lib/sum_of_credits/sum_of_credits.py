@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Sums of credits calculate the total inbound cash over a time period
-for a given user over all their accounts.
+for a given user over all their depository accounts.
 The sum of inbound cash is a proxy for a client's income.
 Typical date ranges are last 30 days, 31-60 days and 61-90 days.
 """
@@ -9,6 +9,7 @@ from datetime import datetime
 from datetime import timedelta
 from pngme.api import Client
 
+import os
 import pandas as pd
 
 
@@ -32,35 +33,37 @@ def sum_of_credits(
     # Constructs a dataframe that contains transactions from all accounts for the user
     record_list = []
     for individual_account in account_details:
-        transaction_response = api_client.transactions.get(
+        transactions = api_client.transactions.get(
             user_uuid=user_uuid,
             account_uuid=individual_account.acct_uuid,
             utc_starttime=utc_starttime,
             utc_endtime=utc_endtime,
         )
-        record_list.extend([dict(entry) for entry in transaction_response])
-    record_df = pd.DataFrame(record_list)
+        record_list.extend([dict(transaction) for transaction in transactions])
 
-    if record_df is None:
+    # if no data available for the user, assume cash-in is zero
+    if len(record_list) == 0:
         return 0.0
 
+    record_df = pd.DataFrame(record_list)
+
     # Get the total inbound credit over a period
-    return record_df[
+    amount = record_df[
         (record_df.impact == "CREDIT")  # Subset by credit
         & (
-            ~record_df.account_type.isin(["loan", "revolving_loan", "mobile-money"])
-        )  # Filter out loan and mobile money account
+            record_df.account_type.isin(["depository"])
+        )  # Only consider depository account
     ].amount.sum()
+    return amount
 
 
 if __name__ == "__main__":
 
-    API_TOKEN = "MY_API_TOKEN"  # paste token here to run script
-    USER_UUID = "958a5ae8-f3a3-41d5-ae48-177fdc19e3f4"
+    USER_UUID = "958a5ae8-f3a3-41d5-ae48-177fdc19e3f4"  # Mercy Otieno, mercy@pngme.demo.com, 254123456789
 
-    client = Client(access_token=API_TOKEN)
+    client = Client(access_token=os.environ["PNGME_TOKEN"])
 
-    now = datetime(2022, 3, 1)
+    now = datetime(2021, 10, 1)
     now_less_30 = now - timedelta(days=30)
     now_less_60 = now - timedelta(days=60)
     now_less_90 = now - timedelta(days=90)
