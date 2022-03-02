@@ -71,12 +71,12 @@ if __name__ == "__main__":
     decision_time_less_60 = decision_time - timedelta(days=60)
     decision_time_less_90 = decision_time - timedelta(days=90)
 
-    sum_of_account_minimum_balance_0_30 = sum_of_account_minimum_balances(
+    sum_of_account_minimum_balances_0_30 = sum_of_account_minimum_balances(
         client, USER_UUID, decision_time_less_30, decision_time
     )
-    sum_of_account_minimum_balance_31_60 = sum_of_account_minimum_balances(
+    sum_of_account_minimum_balances_31_60 = sum_of_account_minimum_balances(
         client, USER_UUID, decision_time_less_60, decision_time_less_30
     )
-    sum_of_account_minimum_balance_61_90 = sum_of_account_minimum_balances(
+    sum_of_account_minimum_balances_61_90 = sum_of_account_minimum_balances(
         client, USER_UUID, decision_time_less_90, decision_time_less_60
     )
