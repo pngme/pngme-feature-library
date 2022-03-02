@@ -6,6 +6,7 @@ Typical date range is last 30 days.
 """
 from datetime import datetime
 from datetime import timedelta
+import os
 from pngme.api import Client
 
 
@@ -49,10 +50,9 @@ def count_opened_loans(
 
 if __name__ == "__main__":
 
-    API_TOKEN = "MY_API_TOKEN"  # paste token here to run script
     USER_UUID = "958a5ae8-f3a3-41d5-ae48-177fdc19e3f4"
 
-    client = Client(access_token=API_TOKEN)
+    client = Client(access_token=os.environ["PNGME_TOKEN"])
 
     now = datetime(2022, 3, 1)
     now_less_30 = now - timedelta(days=30)

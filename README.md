@@ -3,9 +3,9 @@
 A collection of code examples for generating data science features for a mobile phone user.
 
 # Contents
-| name                                                         | description                                                                                 |
-|--------------------------------------------------------------|---------------------------------------------------------------------------------------------|
-| [sum_of_credits_0_30](lib/sum_of_credits/sum_of_credits.py)  | proxy for income. sum of credit transactions across all depository accounts over 0-30 days  |
-| [sum_of_credits_31_60](lib/sum_of_credits/sum_of_credits.py) | proxy for income. sum of credit transactions across all depository accounts over 31-60 days |
-| [sum_of_credits_61_90](lib/sum_of_credits/sum_of_credits.py) | proxy for income. sum of credit transactions across all depository accounts over 61-90 days |
-| [number_of_opened_loans_0_30](lib/count_opened_loans/count_opened_loans.py)     | Number of opened loans over 0-30 days |
+| name                                                                    | description                                                                                 |
+|-------------------------------------------------------------------------|---------------------------------------------------------------------------------------------|
+| [sum_of_credits_0_30](lib/sum_of_credits/sum_of_credits.py)             | proxy for income. sum of credit transactions across all depository accounts over 0-30 days  |
+| [sum_of_credits_31_60](lib/sum_of_credits/sum_of_credits.py)            | proxy for income. sum of credit transactions across all depository accounts over 31-60 days |
+| [sum_of_credits_61_90](lib/sum_of_credits/sum_of_credits.py)            | proxy for income. sum of credit transactions across all depository accounts over 61-90 days |
+| [count_opened_loans_0_30](lib/count_opened_loans/count_opened_loans.py) | Number of opened loans over 0-30 days |
