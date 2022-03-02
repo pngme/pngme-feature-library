@@ -102,6 +102,6 @@ if __name__ == "__main__":
 
     decision_time = int(time.time())
     decision_time_30_days_ago = decision_time - int(timedelta(days=30).total_seconds())
-    get_total_balance_30_gao = get_total_balance(
+    sum_of_total_balance_30_ago = get_total_balance(
         api_client=client, user_uuid=USER_UUID, timestamp=decision_time_30_days_ago
     )

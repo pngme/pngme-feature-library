@@ -22,5 +22,5 @@ export PNGME_TOKEN="eyJraWQiOiJcL3d..."
 4. Run the example:
 
 ```bash
-python3 get_user_total_balance.py
+python3 sum_of_total_balance.py
 ```
