@@ -7,7 +7,7 @@ from pngme.api import Client
 
 
 def get_sum_of_balances_latest(
-    client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime,
+    client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
 ) -> float:
     """Return the latest balance summed across all accounts."""
     accounts = client.accounts.get(user_uuid)
@@ -23,14 +23,19 @@ def get_sum_of_balances_latest(
             utc_endtime=utc_endtime,
         )
 
-        if balances:
+        # Include only depository accounts
+        depository_balances = [
+            balance for balance in balances if balance.account_type == "depository"
+        ]
+
+        if depository_balances:
             # Sort balances descending in time, so the first is the most recent.
-            balances_sorted_by_time_descending = sorted(
-                balances,
+            depository_balances_sorted = sorted(
+                depository_balances,
                 key=lambda balance: balance.ts,
                 reverse=True,
             )
-            sum_of_balances_latest += balances_sorted_by_time_descending[0].balance
+            sum_of_balances_latest += depository_balances_sorted[0].balance
 
     return sum_of_balances_latest
 
