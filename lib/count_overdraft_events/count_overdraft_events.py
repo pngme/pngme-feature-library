@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Sums of insufficient fund events for a given user over all institutions.
+Sums of overdraft events for a given user over all institutions.
 Typical date ranges are last 30 days, 31-60 days and 61-90 days.
 """
 from datetime import datetime
