@@ -2,7 +2,6 @@
 """
 Counts the number of unique institutions with which a user has opened one or more loans
 for a given user over a period.
-Typical date range is last 30 days.
 """
 from datetime import datetime
 from datetime import timedelta
