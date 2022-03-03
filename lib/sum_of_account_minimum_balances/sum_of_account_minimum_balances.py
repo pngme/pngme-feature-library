@@ -29,30 +29,31 @@ def sum_of_account_minimum_balances(
     sum_of_minimum_balances = 0
     observed_balance = False  # Whether observed any depository account balance
 
-    accounts = api_client.accounts.get(user_uuid=user_uuid)
-    for account in accounts:
-        balances = client.balances.get(
-            user_uuid=user_uuid,
-            account_uuid=account.acct_uuid,
+    institutions = api_client.institutions.get(user_uuid)
+    for institution in institutions:
+        institution_id = institution.institution_id
+        balances = api_client.balances.get(
+            user_uuid,
+            institution_id,
             utc_starttime=utc_starttime,
             utc_endtime=utc_endtime,
         )
-        balance_values = [
-            balance.balance
-            for balance in balances
-            if balance.account_type == "depository"  # Only consider depository account
-        ]
-        balance_min = (
-            min(balance_values) if len(balance_values) > 0 else None
-        )
-        if balance_min is None:
-            print(
-                f"WARNING: No balance data was observed for {account.acct_uuid} "
-                f"between {utc_starttime} and {utc_endtime}. Will consider it as 0"
+        account_numbers = {balance.account_number for balance in balances}
+        for account_number in account_numbers:
+            depository_balances = [
+                balance.balance
+                for balance in balances
+                if balance.account_type == "depository"
+                and balance.account_number == account_number
+            ]
+
+            balance_min = (
+                min(depository_balances) if len(depository_balances) > 0 else None
             )
-        else:
-            observed_balance = True
-            sum_of_minimum_balances += balance_min
+
+            if balance_min is not None:
+                observed_balance = True
+                sum_of_minimum_balances += balance_min
 
     if observed_balance is False:
         return None
@@ -62,7 +63,8 @@ def sum_of_account_minimum_balances(
 
 if __name__ == "__main__":
 
-    USER_UUID = "958a5ae8-f3a3-41d5-ae48-177fdc19e3f4"  # Mercy Otieno, mercy@pngme.demo.com, 254123456789
+    # Mercy Otieno, mercy@pngme.demo.com, 254123456789
+    USER_UUID = "958a5ae8-f3a3-41d5-ae48-177fdc19e3f4"
 
     client = Client(access_token=os.environ["PNGME_TOKEN"])
 
