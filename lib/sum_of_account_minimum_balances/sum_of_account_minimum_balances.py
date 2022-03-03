@@ -46,12 +46,8 @@ def sum_of_account_minimum_balances(
                 if balance.account_type == "depository"
                 and balance.account_number == account_number
             ]
-
-            balance_min = (
-                min(depository_balances) if len(depository_balances) > 0 else None
-            )
-
-            if balance_min is not None:
+            if len(depository_balances) > 0:
+                balance_min = min(depository_balances)
                 observed_balance = True
                 sum_of_minimum_balances += balance_min
 
