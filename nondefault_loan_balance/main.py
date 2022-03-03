@@ -37,13 +37,10 @@ if __name__ == "__main__":
     token = os.environ["PNGME_TOKEN"]
     client = Client(token)
 
-    # Mercy Otingo, mercy@pngme.demo, 234112312
-    user_uuid = "958a5ae8-f3a3-41d5-ae48-177fdc19e3f4"
+    # Fehintolu Abebayo, fehintolu@pngme.demo.com, 2341234567890
+    user_uuid = "1b333f2c-d700-4ac6-b9a7-7966526cd47c"
 
     nondefault_loan_balance = get_nondefault_loan_balance(
         client=client, user_uuid=user_uuid
     )
     print(nondefault_loan_balance)
-    # TODO: returns zero for demo user. There is one open tradeline but it appears
-    # classified incorrectly and returns amount=None :
-    #   "Your repayment of KES 7754.0 has been received. Your loan is fully repaid!..."
