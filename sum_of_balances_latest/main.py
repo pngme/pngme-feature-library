@@ -34,7 +34,7 @@ def get_sum_of_balances_latest(
         )
 
         # Add latest account balance for each account within the institution.
-        account_numbers = set([balance.account_number for balance in balances])
+        account_numbers = {balance.account_number for balance in balances}
         for account_number in account_numbers:
             depository_balances = [
                 balance
