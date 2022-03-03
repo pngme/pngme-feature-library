@@ -9,33 +9,47 @@ from pngme.api import Client
 def get_sum_of_balances_latest(
     client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
 ) -> float:
-    """Return the latest balance summed across all accounts."""
-    accounts = client.accounts.get(user_uuid)
+    """Return the latest balance within the time range summed across all accounts.
 
-    # Sum the most recent (within 30 day window) balance in each account.
+    If an account does not contain any balance notifications within the time window,
+    it is considered stale and not included in the total balance.
+
+    Args:
+        client: Pngme API client
+        user_uuid: Pngme mobile phone user_uuid
+        utc_starttime: start of the time window
+        utc_endtime: end of the time window
+    """
+    institutions = client.institutions.get(user_uuid)
+
+    # Sum the most recent balances from each account within our time window.
     sum_of_balances_latest = 0
-    for account in accounts:
-        account_uuid = account.acct_uuid
+    for institution in institutions:
+        institution_id = institution.institution_id
         balances = client.balances.get(
             user_uuid,
-            account_uuid,
+            institution_id,
             utc_starttime=utc_starttime,
             utc_endtime=utc_endtime,
         )
 
-        # Include only depository accounts
-        depository_balances = [
-            balance for balance in balances if balance.account_type == "depository"
-        ]
-
-        if depository_balances:
-            # Sort balances descending in time, so the first is the most recent.
-            depository_balances_sorted = sorted(
-                depository_balances,
-                key=lambda balance: balance.ts,
-                reverse=True,
-            )
-            sum_of_balances_latest += depository_balances_sorted[0].balance
+        # Add latest account balance for each account within the institution.
+        account_numbers = set([balance.account_number for balance in balances])
+        for account_number in account_numbers:
+            depository_balances = [
+                balance
+                for balance in balances
+                if balance.account_type == "depository"
+                and balance.account_number == account_number
+            ]
+            if depository_balances:
+                # Find latest balance record by sorting in time
+                latest_balance = sorted(
+                    depository_balances,
+                    key=lambda balance: balance.ts,
+                    reverse=True,
+                )[0]
+                sum_of_balances_latest += latest_balance.balance
 
     return sum_of_balances_latest
 
