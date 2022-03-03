@@ -28,14 +28,14 @@ def sum_of_credits(
     Returns:
         the sum total of all credit transaction amounts
     """
-    account_details = api_client.accounts.get(user_uuid=user_uuid)
+    institutions = api_client.institutions.get(user_uuid=user_uuid)
 
-    # Constructs a dataframe that contains transactions from all accounts for the user
+    # Constructs a dataframe that contains transactions from all institutions for the user
     record_list = []
-    for individual_account in account_details:
+    for institution in institutions:
         transactions = api_client.transactions.get(
             user_uuid=user_uuid,
-            account_uuid=individual_account.acct_uuid,
+            institution_id=institution.institution_id,
             utc_starttime=utc_starttime,
             utc_endtime=utc_endtime,
         )
@@ -59,7 +59,8 @@ def sum_of_credits(
 
 if __name__ == "__main__":
 
-    USER_UUID = "958a5ae8-f3a3-41d5-ae48-177fdc19e3f4"  # Mercy Otieno, mercy@pngme.demo.com, 254123456789
+    # Mercy Otieno, mercy@pngme.demo.com, 254123456789
+    USER_UUID = "958a5ae8-f3a3-41d5-ae48-177fdc19e3f4"
 
     client = Client(access_token=os.environ["PNGME_TOKEN"])
 
