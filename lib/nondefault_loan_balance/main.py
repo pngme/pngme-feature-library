@@ -34,13 +34,14 @@ def get_nondefault_loan_balance(client: Client, user_uuid: str) -> float:
 
 
 if __name__ == "__main__":
-    token = os.environ["PNGME_TOKEN"]
-    client = Client(token)
-
     # Fehintolu Abebayo, fehintolu@pngme.demo.com, 2341234567890
     user_uuid = "1b333f2c-d700-4ac6-b9a7-7966526cd47c"
+
+    token = os.environ["PNGME_TOKEN"]
+    client = Client(token)
 
     nondefault_loan_balance = get_nondefault_loan_balance(
         client=client, user_uuid=user_uuid
     )
+
     print(nondefault_loan_balance)

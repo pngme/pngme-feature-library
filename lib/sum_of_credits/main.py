@@ -1,23 +1,20 @@
 #!/usr/bin/env python3
-"""
-Sums of credits calculate the total inbound cash over a time period
-for a given user over all their depository accounts.
-The sum of inbound cash is a proxy for a client's income.
-Typical date ranges are last 30 days, 31-60 days and 61-90 days.
-"""
-from datetime import datetime
-from datetime import timedelta
-from pngme.api import Client
 
 import os
+from datetime import datetime, timedelta
+
 import pandas as pd
+from pngme.api import Client
 
 
-def sum_of_credits(
+def get_sum_of_credits(
     api_client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
 ) -> float:
-    """Calculates the sum of credit-type transactions for a given user across all
-     depository accounts in a given period. No currency conversions are performed.
+    """Sum credit transactions across all depository accounts in a given period.
+
+    No currency conversions are performed. Typical date ranges are last 30 days, 31-60
+    days and 61-90 days. Sum of credits is calculated by totaling credit transactions
+    across all of a user's depository accounts during the given time period.
 
     Args:
         api_client: Pngme API client
@@ -49,26 +46,42 @@ def sum_of_credits(
 
     # Get the total inbound credit over a period
     amount = record_df[
-        (record_df.impact == "CREDIT")  # Subset by credit
-        & (
-            record_df.account_type.isin(["depository"])
-        )  # Only consider depository account
+        (record_df.impact == "CREDIT") & (record_df.account_type == "depository")
     ].amount.sum()
     return amount
 
 
 if __name__ == "__main__":
-
     # Mercy Otieno, mercy@pngme.demo.com, 254123456789
-    USER_UUID = "958a5ae8-f3a3-41d5-ae48-177fdc19e3f4"
+    user_uuid = "958a5ae8-f3a3-41d5-ae48-177fdc19e3f4"
 
-    client = Client(access_token=os.environ["PNGME_TOKEN"])
+    token = os.environ["PNGME_TOKEN"]
+    client = Client(token)
 
     now = datetime(2021, 10, 1)
     now_less_30 = now - timedelta(days=30)
     now_less_60 = now - timedelta(days=60)
     now_less_90 = now - timedelta(days=90)
 
-    sum_of_credits_0_30 = sum_of_credits(client, USER_UUID, now_less_30, now)
-    sum_of_credits_31_60 = sum_of_credits(client, USER_UUID, now_less_60, now_less_30)
-    sum_of_credits_61_90 = sum_of_credits(client, USER_UUID, now_less_90, now_less_60)
+    sum_of_credits_0_30 = get_sum_of_credits(
+        api_client=client,
+        user_uuid=user_uuid,
+        utc_starttime=now_less_30,
+        utc_endtime=now,
+    )
+    sum_of_credits_31_60 = get_sum_of_credits(
+        api_client=client,
+        user_uuid=user_uuid,
+        utc_starttime=now_less_60,
+        utc_endtime=now_less_30,
+    )
+    sum_of_credits_61_90 = get_sum_of_credits(
+        api_client=client,
+        user_uuid=user_uuid,
+        utc_starttime=now_less_90,
+        utc_endtime=now_less_60,
+    )
+
+    print(sum_of_credits_0_30)
+    print(sum_of_credits_31_60)
+    print(sum_of_credits_61_90)
