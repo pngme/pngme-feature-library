@@ -1,10 +1,10 @@
-# Count Opened Loans
+# Count opened loan events
 
 1. Create and activate a virtual environment:
 
 ```bash
 python3 -m venv .venv
-.venv/bin/activate
+source .venv/bin/activate
 ```
 
 2. Install the dependencies:
@@ -22,5 +22,5 @@ export PNGME_TOKEN="eyJraWQiOiJcL3d..."
 4. Run the example:
 
 ```bash
-python3 count_opened_loans.py
+python3 main.py
 ```

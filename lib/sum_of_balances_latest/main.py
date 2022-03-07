@@ -43,7 +43,7 @@ def get_sum_of_balances_latest(
                 and balance.account_number == account_number
             ]
             if depository_balances:
-                # Find latest balance record by sorting in time
+                # Find latest balance record by sorting in time.
                 latest_balance = sorted(
                     depository_balances,
                     key=lambda balance: balance.ts,
@@ -55,11 +55,12 @@ def get_sum_of_balances_latest(
 
 
 if __name__ == "__main__":
-    token = os.environ["PNGME_TOKEN"]
-    client = Client(token)
-
     # Mercy Otingo, mercy@pngme.demo, 234112312
     user_uuid = "958a5ae8-f3a3-41d5-ae48-177fdc19e3f4"
+    token = os.environ["PNGME_TOKEN"]
+
+    client = Client(token)
+
     utc_endtime = datetime(2021, 10, 31)
     utc_starttime = utc_endtime - timedelta(days=30)
 
@@ -69,4 +70,5 @@ if __name__ == "__main__":
         utc_starttime=utc_starttime,
         utc_endtime=utc_endtime,
     )
+
     print(sum_of_balances_latest)

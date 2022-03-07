@@ -1,10 +1,10 @@
-# Count of Loan Application Declined Events
+# Count loan declined events
 
 1. Create and activate a virtual environment:
 
 ```bash
 python3 -m venv .venv
-.venv/bin/activate
+source .venv/bin/activate
 ```
 
 2. Install the dependencies:
@@ -22,6 +22,5 @@ export PNGME_TOKEN="eyJraWQiOiJcL3d..."
 4. Run the example:
 
 ```bash
-python3 sum_of_credits.py
-
+python3 main.py
 ```
