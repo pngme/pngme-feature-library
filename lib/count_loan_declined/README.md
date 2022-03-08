@@ -1,4 +1,4 @@
-# Sum of Inbound Credits
+# Count loan declined events
 
 1. Create and activate a virtual environment:
 
@@ -22,6 +22,5 @@ export PNGME_TOKEN="eyJraWQiOiJcL3d..."
 4. Run the example:
 
 ```bash
-python3 sum_of_credits.py
-
+python3 main.py
 ```
