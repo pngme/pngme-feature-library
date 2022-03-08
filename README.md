@@ -6,6 +6,8 @@
 
 A collection of code examples which generate financial features for a mobile phone user using [Pngme's financial data APIs](https://developers.api.pngme.com/reference/).
 
+## Features
+
 | Name                                                                      | Description                                                                                 |
 | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
 | [count_insufficient_funds_0_30](lib/count_insufficient_funds)                | count of insufficient funds events across all accounts over 0-30 days                       |
