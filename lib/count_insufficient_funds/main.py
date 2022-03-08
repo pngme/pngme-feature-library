@@ -6,11 +6,10 @@ from datetime import datetime, timedelta
 from pngme.api import Client
 
 
-def count_insufficient_funds_events(
+def get_count_insufficient_funds(
     api_client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
 ) -> float:
-    """
-    Count events labelled with InsufficientFunds across all institutions.
+    """Count events labeled with InsufficientFunds across all institutions.
 
     Typical date ranges are last 30 days, 31-60 days and 61-90 days.
 
@@ -27,7 +26,7 @@ def count_insufficient_funds_events(
 
     institutions = api_client.institutions.get(user_uuid=user_uuid)
 
-    insufficient_funds_event_count = 0
+    count_insufficient_funds = 0
     for individual_account in institutions:
         insufficient_funds_events = api_client.alerts.get(
             user_uuid=user_uuid,
@@ -36,28 +35,42 @@ def count_insufficient_funds_events(
             utc_endtime=utc_endtime,
             labels=[insufficient_funds_label],
         )
-        insufficient_funds_event_count += len(insufficient_funds_events)
+        count_insufficient_funds += len(insufficient_funds_events)
 
-    return insufficient_funds_event_count
+    return count_insufficient_funds
 
 
 if __name__ == "__main__":
     # Mercy Otieno, mercy@pngme.demo.com, 254123456789
     user_uuid = "958a5ae8-f3a3-41d5-ae48-177fdc19e3f4"
+
+    token = os.environ["PNGME_TOKEN"]
+    client = Client(token)
+
     now = datetime(2021, 10, 1)
     now_less_30 = now - timedelta(days=30)
     now_less_60 = now - timedelta(days=60)
     now_less_90 = now - timedelta(days=90)
 
-    token = os.environ["PNGME_TOKEN"]
-    client = Client(token)
+    count_insufficient_funds_0_30 = get_count_insufficient_funds(
+        api_client=client,
+        user_uuid=user_uuid,
+        utc_starttime=now_less_30,
+        utc_endtime=now,
+    )
+    count_insufficient_funds_31_60 = get_count_insufficient_funds(
+        api_client=client,
+        user_uuid=user_uuid,
+        utc_starttime=now_less_60,
+        utc_endtime=now_less_30,
+    )
+    count_insufficient_funds_61_90 = get_count_insufficient_funds(
+        api_client=client,
+        user_uuid=user_uuid,
+        utc_starttime=now_less_90,
+        utc_endtime=now_less_60,
+    )
 
-    count_insufficient_fund_events_0_30 = count_insufficient_funds_events(
-        client, user_uuid, now_less_30, now
-    )
-    count_insufficient_fund_events_31_60 = count_insufficient_funds_events(
-        client, user_uuid, now_less_60, now_less_30
-    )
-    count_insufficient_fund_events_61_90 = count_insufficient_funds_events(
-        client, user_uuid, now_less_90, now_less_60
-    )
+    print(count_insufficient_funds_0_30)
+    print(count_insufficient_funds_31_60)
+    print(count_insufficient_funds_61_90)
