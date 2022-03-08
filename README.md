@@ -33,6 +33,7 @@ A collection of code examples which generate financial features for a mobile pho
 | [sum_of_credits_0_30](lib/sum_of_credits)                                    | proxy for income. sum of credit transactions across all depository accounts over 0-30 days  |
 | [sum_of_credits_31_60](lib/sum_of_credits)                                   | proxy for income. sum of credit transactions across all depository accounts over 31-60 days |
 | [sum_of_credits_61_90](lib/sum_of_credits)                                   | proxy for income. sum of credit transactions across all depository accounts over 61-90 days |
+| [sum_of_default_loan_balance](lib/sum_of_default_loan_balance)               | sum of default loan balance                                                                 |
 | [sum_of_loan_repayments_0_30](lib/sum_of_loan_repayments)                    | sum of loan repayments over 0-30 days                                                       |
 | [sum_of_loan_repayments_31_60](lib/sum_of_loan_repayments)                   | sum of loan repayments over 31-60 days                                                      |
 | [sum_of_loan_repayments_61_90](lib/sum_of_loan_repayments)                   | sum of loan repayments over 61-90 days                                                      |
