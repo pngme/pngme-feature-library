@@ -1,3 +1,2 @@
 pandas
 pngme-api
-requests

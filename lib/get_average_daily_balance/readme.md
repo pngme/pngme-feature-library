@@ -22,6 +22,6 @@ export PNGME_TOKEN="eyJraWQiOiJcL3d..."
 4. Run the example:
 
 ```bash
-python3 get_average_daily_balance.py
+python3 main.py
 
 ```
