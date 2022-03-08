@@ -33,3 +33,6 @@ A collection of code examples which generate financial features for a mobile pho
 | [sum_of_credits_0_30](lib/sum_of_credits)                                    | proxy for income. sum of credit transactions across all depository accounts over 0-30 days  |
 | [sum_of_credits_31_60](lib/sum_of_credits)                                   | proxy for income. sum of credit transactions across all depository accounts over 31-60 days |
 | [sum_of_credits_61_90](lib/sum_of_credits)                                   | proxy for income. sum of credit transactions across all depository accounts over 61-90 days |
+| [avg_daily_balance_0_30](lib/average_daily_balance)                               | average daily balance. average daily balance across all depository accounts over 0-30 days  |
+| [avg_daily_balance_31_60](lib/average_daily_balance)                              | average daily balance. average daily balance across all depository accounts over 31-60 days  |
+| [avg_daily_balance_61_90](lib/average_daily_balance)                               | average daily balance. average daily balance across all depository accounts over 61-90 days  |
