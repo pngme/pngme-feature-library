@@ -19,10 +19,12 @@ def get_default_loan_balance(api_client: Client, user_uuid: str) -> float:
         user_uuid: Pngme mobile phone user_uuid
     """
     credit_report = api_client.credit_report.get(user_uuid)
-    default_tradelines = (credit_report["tradelines"]["default"],)
-    default_loan_balance = sum(
-        [tradeline["amount"] for tradeline in default_tradelines if tradeline["amount"]]
-    )
+    default_tradelines = credit_report["tradelines"]["default"]
+    default_loan_balance = 0
+    for tradeline in default_tradelines:
+        if tradeline["amount"]:
+            default_loan_balance += tradeline["amount"]
+
     return default_loan_balance
 
 
