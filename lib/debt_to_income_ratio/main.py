@@ -38,7 +38,10 @@ def get_debt_to_income_ratio(
 
     debt_amount = 0
     for tradeline in tradelines:
-        if tradeline["amount"]:
+        if (
+            tradeline["amount"]
+            and utc_starttime < datetime.fromisoformat(tradeline["date"]) <= utc_endtime
+        ):
             debt_amount += tradeline["amount"]
 
     if debt_amount == 0:
@@ -78,7 +81,7 @@ if __name__ == "__main__":
     token = os.environ["PNGME_TOKEN"]
     client = Client(token)
 
-    now = datetime(2021, 11, 1)
+    now = datetime(2021, 9, 1)
     now_less_30 = now - timedelta(days=30)
 
     debt_to_income_ratio_0_30 = get_debt_to_income_ratio(
