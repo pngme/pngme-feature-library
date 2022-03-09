@@ -7,7 +7,7 @@ from typing import Optional
 from pngme.api import Client
 
 
-def get_sum_of_account_minimum_balances(
+def sum_of_minimum_balances(
     api_client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
 ) -> Optional[float]:
     """Sum observed minimum balances across all depository accounts.
@@ -67,25 +67,25 @@ if __name__ == "__main__":
     decision_time_less_60 = decision_time - timedelta(days=60)
     decision_time_less_90 = decision_time - timedelta(days=90)
 
-    sum_of_account_minimum_balances_0_30 = get_sum_of_account_minimum_balances(
+    sum_of_minimum_balances_0_30 = sum_of_minimum_balances(
         api_client=client,
         user_uuid=user_uuid,
         utc_starttime=decision_time_less_30,
         utc_endtime=decision_time,
     )
-    sum_of_account_minimum_balances_31_60 = get_sum_of_account_minimum_balances(
+    sum_of_minimum_balances_31_60 = sum_of_minimum_balances(
         api_client=client,
         user_uuid=user_uuid,
         utc_starttime=decision_time_less_60,
         utc_endtime=decision_time_less_30,
     )
-    sum_of_account_minimum_balances_61_90 = get_sum_of_account_minimum_balances(
+    sum_of_minimum_balances_61_90 = sum_of_minimum_balances(
         api_client=client,
         user_uuid=user_uuid,
         utc_starttime=decision_time_less_90,
         utc_endtime=decision_time_less_60,
     )
 
-    print(sum_of_account_minimum_balances_0_30)
-    print(sum_of_account_minimum_balances_31_60)
-    print(sum_of_account_minimum_balances_61_90)
+    print(sum_of_minimum_balances_0_30)
+    print(sum_of_minimum_balances_31_60)
+    print(sum_of_minimum_balances_61_90)

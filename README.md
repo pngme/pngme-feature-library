@@ -26,9 +26,9 @@ A collection of code examples which generate financial features for a mobile pho
 | [net_cash_flow_31_60](lib/net_cash_flow)                                     | net cash flow (inflow minus outflow) across all depository accounts over 31-60 days         |
 | [net_cash_flow_61_90](lib/net_cash_flow)                                     | net cash flow (inflow minus outflow) across all depository accounts over 61-90 days         |
 | [nondefault_loan_balance](lib/nondefault_loan_balance)                       | current loan balance estimate from loan tradelines                                          |
-| [sum_of_minimum_balances_0_30](lib/sum_of_account_minimum_balances)          | sum of minimum balances across all depository accounts over 0-30 days                       |
-| [sum_of_minimum_balances_31_60](lib/sum_of_account_minimum_balances)         | sum of minimum balances across all depository accounts over 31-60 days                      |
-| [sum_of_minimum_balances_61_90](lib/sum_of_account_minimum_balances)         | sum of minimum balances across all depository accounts over 61-90 days                      |
+| [sum_of_minimum_balances_0_30](lib/sum_of_minimum_balances)                  | sum of minimum balances across all depository accounts over 0-30 days                       |
+| [sum_of_minimum_balances_31_60](lib/sum_of_minimum_balances)                 | sum of minimum balances across all depository accounts over 31-60 days                      |
+| [sum_of_minimum_balances_61_90](lib/sum_of_minimum_balances)                 | sum of minimum balances across all depository accounts over 61-90 days                      |
 | [sum_of_balances_latest](lib/sum_of_balances_latest)                         | current balance summed across all depository accounts                                       |
 | [sum_of_credits_0_30](lib/sum_of_credits)                                    | proxy for income. sum of credit transactions across all depository accounts over 0-30 days  |
 | [sum_of_credits_31_60](lib/sum_of_credits)                                   | proxy for income. sum of credit transactions across all depository accounts over 31-60 days |
@@ -37,3 +37,4 @@ A collection of code examples which generate financial features for a mobile pho
 | [sum_of_loan_repayments_0_30](lib/sum_of_loan_repayments)                    | sum of loan repayments over 0-30 days                                                       |
 | [sum_of_loan_repayments_31_60](lib/sum_of_loan_repayments)                   | sum of loan repayments over 31-60 days                                                      |
 | [sum_of_loan_repayments_61_90](lib/sum_of_loan_repayments)                   | sum of loan repayments over 61-90 days                                                      |
+g
