@@ -7,7 +7,7 @@ import pandas as pd
 from pngme.api import Client
 
 
-def get_debt_to_income_ratio(
+def get_debt_to_income_ratio_latest(
     api_client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
 ) -> float:
     """Compute the debt to income ratio over a period
@@ -84,11 +84,11 @@ if __name__ == "__main__":
     now = datetime(2021, 9, 1)
     now_less_30 = now - timedelta(days=30)
 
-    debt_to_income_ratio_0_30 = get_debt_to_income_ratio(
+    debt_to_income_ratio_latest = get_debt_to_income_ratio_latest(
         api_client=client,
         user_uuid=user_uuid,
         utc_starttime=now_less_30,
         utc_endtime=now,
     )
 
-    print(debt_to_income_ratio_0_30)
+    print(debt_to_income_ratio_latest)

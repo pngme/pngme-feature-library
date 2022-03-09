@@ -37,4 +37,4 @@ A collection of code examples which generate financial features for a mobile pho
 | [sum_of_loan_repayments_0_30](lib/sum_of_loan_repayments)                    | sum of loan repayments over 0-30 days                                                                                                  |
 | [sum_of_loan_repayments_31_60](lib/sum_of_loan_repayments)                   | sum of loan repayments over 31-60 days                                                                                                 |
 | [sum_of_loan_repayments_61_90](lib/sum_of_loan_repayments)                   | sum of loan repayments over 61-90 days                                                                                                 | 
-| [debt_to_income_ratio_0_30](lib/debt_to_income_ratio)                        | ratio between the sum of the non-closed tradline balances and sum of credit transactions across all depository accounts over 0-30 days |
+| [debt_to_income_ratio_latest](lib/debt_to_income_ratio_latest)               | ratio between the sum of the non-closed tradline balances and sum of credit transactions across all depository accounts over 0-30 days |
