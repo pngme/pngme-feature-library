@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from pngme.api import Client
 
 
-def get_count_loan_declined(
+def count_loan_declined_events(
     api_client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
 ) -> float:
     """Count events labelled with LoanDeclined across all institutions.
@@ -52,25 +52,25 @@ if __name__ == "__main__":
     now_less_60 = now - timedelta(days=60)
     now_less_90 = now - timedelta(days=90)
 
-    count_loan_declined_0_30 = get_count_loan_declined(
+    count_loan_declined_events_0_30 = count_loan_declined_events(
         api_client=client,
         user_uuid=user_uuid,
         utc_starttime=now_less_30,
         utc_endtime=now,
     )
-    count_loan_declined_31_60 = get_count_loan_declined(
+    count_loan_declined_events_31_60 = count_loan_declined_events(
         api_client=client,
         user_uuid=user_uuid,
         utc_starttime=now_less_60,
         utc_endtime=now_less_30,
     )
-    count_loan_declined_61_90 = get_count_loan_declined(
+    count_loan_declined_events_61_90 = count_loan_declined_events(
         api_client=client,
         user_uuid=user_uuid,
         utc_starttime=now_less_90,
         utc_endtime=now_less_60,
     )
 
-    print(count_loan_declined_0_30)
-    print(count_loan_declined_31_60)
-    print(count_loan_declined_61_90)
+    print(count_loan_declined_events_0_30)
+    print(count_loan_declined_events_31_60)
+    print(count_loan_declined_events_61_90)

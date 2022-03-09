@@ -13,9 +13,9 @@ A collection of code examples which generate financial features for a mobile pho
 | [count_insufficient_funds_0_30](lib/count_insufficient_funds)                | count of insufficient funds events across all accounts over 0-30 days                       |
 | [count_insufficient_funds_31_60](lib/count_insufficient_funds)               | count of insufficient funds events across all accounts over 31-60 days                      |
 | [count_insufficient_funds_61_90](lib/count_insufficient_funds)               | count of insufficient funds events across all accounts over 61-90 days                      |
-| [count_loan_declined_0_30](lib/count_loan_declined)                          | count of loan declined events across all accounts over 0-30 days                            |
-| [count_loan_declined_31_60](lib/count_loan_declined)                         | count of loan declined events across all accounts over 31-60 days                           |
-| [count_loan_declined_61_90](lib/count_loan_declined)                         | count of loan declined events across all accounts over 61-90 days                           |
+| [count_loan_declined_events_0_30](lib/count_loan_declined_events)            | count of loan declined events across all accounts over 0-30 days                            |
+| [count_loan_declined_events_31_60](lib/count_loan_declined_events)           | count of loan declined events across all accounts over 31-60 days                           |
+| [count_loan_declined_events_61_90](lib/count_loan_declined_events)           | count of loan declined events across all accounts over 61-90 days                           |
 | [count_opened_loans_0_30](lib/count_opened_loans)                            | count of opened loans over 0-30 days                                                        |
 | [count_opened_loans_31_60](lib/count_opened_loans)                           | count of opened loans over 31-60 days                                                       |
 | [count_opened_loans_61_90](lib/count_opened_loans)                           | count of opened loans over 61-90 days                                                       |
