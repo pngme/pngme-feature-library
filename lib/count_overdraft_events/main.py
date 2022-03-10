@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from pngme.api import Client
 
 
-def count_overdraft_events(
+def get_count_overdraft_events(
     api_client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
 ) -> float:
     """
@@ -53,19 +53,19 @@ if __name__ == "__main__":
     now_less_60 = now - timedelta(days=60)
     now_less_90 = now - timedelta(days=90)
 
-    count_overdraft_events_0_30 = count_overdraft_events(
+    count_overdraft_events_0_30 = get_count_overdraft_events(
         api_client=client,
         user_uuid=user_uuid,
         utc_starttime=now_less_30,
         utc_endtime=now,
     )
-    count_overdraft_events_31_60 = count_overdraft_events(
+    count_overdraft_events_31_60 = get_count_overdraft_events(
         api_client=client,
         user_uuid=user_uuid,
         utc_starttime=now_less_60,
         utc_endtime=now_less_30,
     )
-    count_overdraft_events_61_90 = count_overdraft_events(
+    count_overdraft_events_61_90 = get_count_overdraft_events(
         api_client=client,
         user_uuid=user_uuid,
         utc_starttime=now_less_90,
