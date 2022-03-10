@@ -84,6 +84,7 @@ if __name__ == "__main__":
     now = datetime(2021, 9, 1)
     now_less_30 = now - timedelta(days=30)
 
+    # May refactor the helper function that not to take start and end time as arguments
     debt_to_income_ratio_latest = get_debt_to_income_ratio_latest(
         api_client=client,
         user_uuid=user_uuid,
