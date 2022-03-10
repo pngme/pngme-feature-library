@@ -11,11 +11,16 @@ def get_avg_daily_balance(
 ) -> float:
     """Calculates the average daily account balance for a user across all
        of their accounts for a given time window. 
+
+       Typical date ranges are last 30 days, 31-60 days and 61-90 days.
        
     Args:
-        user_uuid (str): user identifier
+        client: Pngme API client
+        user_uuid: the Pngme user_uuid for the mobile phone user
+        utc_starttime: the datetime for the left-hand-side of the time-window
+        utc_endtime: the datetime for the right-hand-side of the time-window
     Returns:
-        account_balances (dict): <acct_uuid, balances(pd.DataFrame)>
+        the average daily account balance for a given time window
     """
     institutions = client.institutions.get(user_uuid)
     institution_balances = []
