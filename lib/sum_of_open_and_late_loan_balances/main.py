@@ -5,7 +5,7 @@ import os
 from pngme.api import Client
 
 
-def sum_of_open_and_late_loan_balances(client: Client, user_uuid: str) -> float:
+def get_sum_of_open_and_late_loan_balances(client: Client, user_uuid: str) -> float:
     """Return the sum of open and late-payment loan balances
 
     Uses the credit report resource to sum the value of open and late payment
@@ -40,7 +40,7 @@ if __name__ == "__main__":
     token = os.environ["PNGME_TOKEN"]
     client = Client(token)
 
-    sum_of_open_and_late_loan_balances = sum_of_open_and_late_loan_balances(
+    sum_of_open_and_late_loan_balances = get_sum_of_open_and_late_loan_balances(
         client=client, user_uuid=user_uuid
     )
 
