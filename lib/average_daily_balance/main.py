@@ -6,7 +6,7 @@ import pandas as pd
 from pngme.api import Client
 
 
-def get_avg_daily_balance(
+def get_avg_eod_balance(
     client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
 ) -> float:
     """Calculates the average daily account balance for a user across all
@@ -48,7 +48,7 @@ def get_avg_daily_balance(
         balances = balances.assign(institution_name=institution_id)
         institution_balances.append(balances)
 
-    # 1. Create DF of institution balances
+    # 1. Combine all institution balances into single dataframe
     institution_balances = pd.concat(institution_balances)
     if institution_balances.empty:
         return None
@@ -58,7 +58,7 @@ def get_avg_daily_balance(
     institution_balances["yyyymmdd"] = institution_balances["ts"].apply(
         lambda epoch_time: datetime.fromtimestamp(epoch_time)
     )
-    institution_balances["yyyymmdd"] = institution_balances["yyyymmdd"].dt.round("D")
+    institution_balances["yyyymmdd"] = institution_balances["yyyymmdd"].dt.floor("D")
 
     # 3. Filter time window
     institution_balances = institution_balances[
@@ -80,11 +80,11 @@ def get_avg_daily_balance(
         .resample("1D", kind="timestamp")
         .ffill()
     )
-    avg_daily_balance = (
+    avg_eod_balance = (
         ffilled_balances.groupby(["institution_name", "account_number"]).mean().sum()
     )
 
-    return avg_daily_balance
+    return avg_eod_balance
 
 
 if __name__ == "__main__":
@@ -100,15 +100,15 @@ if __name__ == "__main__":
     now_less_60 = now - timedelta(days=60)
     now_less_90 = now - timedelta(days=90)
 
-    avg_daily_balance_0_30 = get_avg_daily_balance(
+    avg_daily_balance_0_30 = get_avg_eod_balance(
         client, user_uuid=user_uuid, utc_starttime=now_less_30, utc_endtime=now
     )
 
-    avg_daily_balance_31_60 = get_avg_daily_balance(
+    avg_daily_balance_31_60 = get_avg_eod_balance(
         client, user_uuid=user_uuid, utc_starttime=now_less_60, utc_endtime=now_less_30
     )
 
-    avg_daily_balance_61_90 = get_avg_daily_balance(
+    avg_daily_balance_61_90 = get_avg_eod_balance(
         client, user_uuid=user_uuid, utc_starttime=now_less_90, utc_endtime=now_less_60
     )
 
