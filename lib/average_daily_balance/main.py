@@ -80,11 +80,11 @@ def get_avg_daily_balance(
         .resample("1D", kind="timestamp")
         .ffill()
     )
-    avg_eod_balance = (
+    avg_daily_balance = (
         ffilled_balances.groupby(["institution_name", "account_number"]).mean().sum()
     )
 
-    return avg_eod_balance
+    return avg_daily_balance
 
 
 if __name__ == "__main__":
