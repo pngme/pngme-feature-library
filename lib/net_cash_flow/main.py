@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional
 
-import pandas as pd
+import pandas as pd  # type: ignore
 from pngme.api import Client
 
 
