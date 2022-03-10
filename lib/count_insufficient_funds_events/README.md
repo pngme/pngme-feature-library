@@ -1,4 +1,4 @@
-# Count insufficient funds events
+# Count Insufficient Funds Events
 
 1. Create and activate a virtual environment:
 
