@@ -1,4 +1,4 @@
-# Non-default loan balance
+# Sum of Open and Late Loan Balances
 
 1. Create and activate a virtual environment:
 
