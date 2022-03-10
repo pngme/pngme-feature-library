@@ -1,4 +1,4 @@
-# Count loan declined events
+# Sum of Minimum Balances
 
 1. Create and activate a virtual environment:
 
@@ -22,5 +22,5 @@ export PNGME_TOKEN="eyJraWQiOiJcL3d..."
 4. Run the example:
 
 ```bash
-python3 main.py
+python3 sum_of_minimum_balances.py
 ```
