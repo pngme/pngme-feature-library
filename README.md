@@ -19,9 +19,9 @@ A collection of code examples which generate financial features for a mobile pho
 | [count_opened_loans_0_30](lib/count_opened_loans)                            | count of opened loans over 0-30 days                                                        |
 | [count_opened_loans_31_60](lib/count_opened_loans)                           | count of opened loans over 31-60 days                                                       |
 | [count_opened_loans_61_90](lib/count_opened_loans)                           | count of opened loans over 61-90 days                                                       |
-| [count_overdraft_0_30](lib/count_overdraft)                                  | count of overdraft events across all accounts over 0-30 days                                |
-| [count_overdraft_31_60](lib/count_overdraft)                                 | count of overdraft events across all accounts over 31-60 days                               |
-| [count_overdraft_61_90](lib/count_overdraft)                                 | count of overdraft events across all accounts over 61-90 days                               |
+| [count_overdraft_events_0_30](lib/count_overdraft_events)                    | count of overdraft events across all accounts over 0-30 days                                |
+| [count_overdraft_events_31_60](lib/count_overdraft_events)                   | count of overdraft events across all accounts over 31-60 days                               |
+| [count_overdraft_events_61_90](lib/count_overdraft_events)                   | count of overdraft events across all accounts over 61-90 days                               |
 | [net_cash_flow_0_30](lib/net_cash_flow)                                      | net cash flow (inflow minus outflow) across all depository accounts over 0-30 days          |
 | [net_cash_flow_31_60](lib/net_cash_flow)                                     | net cash flow (inflow minus outflow) across all depository accounts over 31-60 days         |
 | [net_cash_flow_61_90](lib/net_cash_flow)                                     | net cash flow (inflow minus outflow) across all depository accounts over 61-90 days         |
