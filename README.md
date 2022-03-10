@@ -4,7 +4,7 @@
 
 <h3 align="center">Pngme Feature Library</h3>
 
-A collection of code examples which generate financial features for a mobile phone user using [Pngme's financial data APIs](https://developers.api.pngme.com/reference/).
+A collection of code examples which generate modelling features for a mobile phone user using [Pngme's Python Client](https://pypi.org/project/pngme-api/) for [Pngme's REST APIs](https://developers.api.pngme.com/reference/).
 
 ## Features
 
