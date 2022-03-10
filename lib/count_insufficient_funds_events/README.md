@@ -1,4 +1,4 @@
-# Non-default loan balance
+# Count Insufficient Funds Events
 
 1. Create and activate a virtual environment:
 
@@ -23,6 +23,4 @@ export PNGME_TOKEN="eyJraWQiOiJcL3d..."
 
 ```bash
 python3 main.py
-
-# 17550.0
 ```
