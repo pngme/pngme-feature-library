@@ -9,9 +9,9 @@ from pngme.api import Client
 def get_avg_daily_balance(
     client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
 ) -> float:
-    """Get all balances for accounts of type 'depository' or 'mobilemoney'
-       Returns a dictionary where the key is the insitution_uuid and 
-       the value is a dataframe of balances
+    """Calculates the average daily account balance for a user across all
+       of their accounts for a given time window. 
+       
     Args:
         user_uuid (str): user identifier
     Returns:
@@ -24,6 +24,7 @@ def get_avg_daily_balance(
     all_pages_utc_endtime = datetime(today.year, today.month, today.day)
     all_pages_starttime = all_pages_utc_endtime - timedelta(days=1e5)  # get all pages
 
+    #0. Get all balances for a user
     for institution in institutions:
         institution_id = institution.institution_id
         balances = client.balances.get(
