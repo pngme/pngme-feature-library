@@ -49,25 +49,25 @@ def get_avg_daily_balance(
         institution_balances.append(balances)
 
     # 1. Combine all institution balances into single dataframe
-    institution_balances = pd.concat(institution_balances)
-    if institution_balances.empty:
+    institution_balances_df = pd.concat(institution_balances)
+    if institution_balances_df.empty:
         return None
 
     # 2. Sort and create a column for day, filter by time window
-    institution_balances = institution_balances.sort_values("ts")
-    institution_balances["yyyymmdd"] = pd.to_datetime(institution_balances['ts'], unit='s')
-    institution_balances["yyyymmdd"] = institution_balances["yyyymmdd"].dt.floor("D")
+    institution_balances_df = institution_balances_df.sort_values("ts")
+    institution_balances_df["yyyymmdd"] = pd.to_datetime(institution_balances_df['ts'], unit='s')
+    institution_balances_df["yyyymmdd"] = institution_balances_df["yyyymmdd"].dt.floor("D")
 
     # 3. Filter time window
-    institution_balances = institution_balances[
-        (institution_balances["yyyymmdd"] >= utc_starttime)
-        & (institution_balances["yyyymmdd"] <= utc_endtime)
+    institution_balances_df = institution_balances_df[
+        (institution_balances_df["yyyymmdd"] >= utc_starttime)
+        & (institution_balances_df["yyyymmdd"] <= utc_endtime)
     ]
-    if institution_balances.empty:
+    if institution_balances_df.empty:
         return None
 
     # 4. Get end of day balances, if an account changes balances three times a day ($100, $20, $120), take the last one ($120)
-    eod_balances = institution_balances.groupby(
+    eod_balances = institution_balances_df.groupby(
         ["yyyymmdd", "account_number", "institution_name"]
     ).tail(1)
     eod_balances = eod_balances.set_index("yyyymmdd")
