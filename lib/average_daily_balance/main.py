@@ -55,9 +55,7 @@ def get_avg_daily_balance(
 
     # 2. Sort and create a column for day, filter by time window
     institution_balances = institution_balances.sort_values("ts")
-    institution_balances["yyyymmdd"] = institution_balances["ts"].apply(
-        lambda epoch_time: datetime.fromtimestamp(epoch_time)
-    )
+    institution_balances["yyyymmdd"] = pd.to_datetime(institution_balances['ts'], unit='s')
     institution_balances["yyyymmdd"] = institution_balances["yyyymmdd"].dt.floor("D")
 
     # 3. Filter time window
