@@ -29,7 +29,7 @@ def get_avg_daily_balance(
     all_pages_utc_endtime = datetime(today.year, today.month, today.day)
     all_pages_starttime = all_pages_utc_endtime - timedelta(days=1e5)  # get all pages
 
-    #0. Get all balances for a user
+    # 0. Get all balances for a user
     for institution in institutions:
         institution_id = institution.institution_id
         balances = client.balances.get(
