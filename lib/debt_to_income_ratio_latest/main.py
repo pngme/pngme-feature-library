@@ -2,14 +2,15 @@
 
 import os
 from datetime import datetime, timedelta
+from typing import Optional
 
-import pandas as pd
+import pandas as pd  # type: ignore
 from pngme.api import Client
 
 
 def get_debt_to_income_ratio_latest(
     api_client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
-) -> float:
+) -> Optional[float]:
     """Compute the debt to income ratio over a period
 
     Debt: Sum of open, late_payment and default tradeline balance
@@ -21,13 +22,16 @@ def get_debt_to_income_ratio_latest(
         utc_starttime: the datetime for the left-hand-side of the time-window
         utc_endtime: the datetime for the right-hand-side of the time-window
 
-    Return:
-        Ratio between debt to income ratio.
-        If debt amount is zero, return 0
-        If income is zero, return float('inf')
+    Returns:
+        Ratio of debt / income, or None if a credit report cannot be generated for
+        the given user. Returning 0 would correspond to a 0 debt amount, and Inf
+        would correspond to a 0 income amount.
     """
 
     credit_report = api_client.credit_report.get(user_uuid)
+
+    if not credit_report:
+        return None
 
     # Sum the values of all open, late_payment and default tradelines as debt proxy.
     tradelines = [

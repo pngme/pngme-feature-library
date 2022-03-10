@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""
-Sum of default loan balances
-"""
 
 import os
+from typing import Optional
 
 from pngme.api import Client
 
 
-def get_sum_of_default_loan_balances(api_client: Client, user_uuid: str) -> float:
+def get_sum_of_default_loan_balances(
+    api_client: Client, user_uuid: str
+) -> Optional[float]:
     """Return the sum of default tradelines.
 
     Uses the credit report resource to sum the value of default tradelines
@@ -17,8 +17,16 @@ def get_sum_of_default_loan_balances(api_client: Client, user_uuid: str) -> floa
     Args:
         api_client: Pngme API client
         user_uuid: Pngme mobile phone user_uuid
+
+    Returns:
+        Total default loan balances, or None if a credit report cannot be
+        generated for the given user.
     """
     credit_report = api_client.credit_report.get(user_uuid)
+
+    if not credit_report:
+        return None
+
     default_tradelines = credit_report["tradelines"]["default"]
     default_loan_balance = 0
     for tradeline in default_tradelines:
@@ -38,4 +46,4 @@ if __name__ == "__main__":
     sum_of_default_loan_balances = get_sum_of_default_loan_balances(
         api_client=client, user_uuid=USER_UUID
     )
-    print(sum_of_default_loan_balance)
+    print(sum_of_default_loan_balances)

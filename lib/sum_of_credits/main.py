@@ -3,7 +3,7 @@
 import os
 from datetime import datetime, timedelta
 
-import pandas as pd
+import pandas as pd  # type: ignore
 from pngme.api import Client
 
 

@@ -2,13 +2,14 @@
 
 import os
 from datetime import datetime, timedelta
+from typing import Optional
 
 from pngme.api import Client
 
 
 def sum_of_loan_repayments(
     api_client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
-) -> float:
+) -> Optional[float]:
     """Return the sum of loan repayments over a period for a given user
 
     Args:
@@ -17,11 +18,14 @@ def sum_of_loan_repayments(
         utc_starttime: the datetime for the left-hand-side of the time-window
         utc_endtime: the datetime for the right-hand-side of the time-window
 
-    Return:
+    Returns:
         Total number of loan repayments over a period
     """
 
     credit_report = api_client.credit_report.get(user_uuid)
+
+    if not credit_report:
+        return None
 
     total_loan_repayment = 0
     for loan_repayment in credit_report["loan_repayments"]:

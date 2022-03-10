@@ -1,11 +1,14 @@
 #!/usr/bin/env python3
 
 import os
+from typing import Optional
 
 from pngme.api import Client
 
 
-def get_sum_of_open_and_late_loan_balances(client: Client, user_uuid: str) -> float:
+def get_sum_of_open_and_late_loan_balances(
+    client: Client, user_uuid: str
+) -> Optional[float]:
     """Return the sum of open and late-payment loan balances
 
     Uses the credit report resource to sum the value of open and late payment
@@ -14,9 +17,16 @@ def get_sum_of_open_and_late_loan_balances(client: Client, user_uuid: str) -> fl
     Args:
         client: Pngme API client
         user_uuid: Pngme mobile phone user_uuid
+
+    Returns:
+        Total open and late loan balances, or None if a credit report cannot be
+        generated for the given user.
     """
 
     credit_report = client.credit_report.get(user_uuid)
+
+    if not credit_report:
+        return None
 
     # Sum the values of all open and late_payment tradelines.
     tradedlines = [
