@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional
 
-import pandas as pd
+import pandas as pd  # type: ignore
 from pngme.api import Client
 
 
@@ -14,9 +14,9 @@ def get_net_cash_flow(
     """Compute the net cash flow for a user over a given period.
 
     No currency conversions are performed. Typical date ranges are last 30 days, 31-60
-    days and 61-90 days. Net cash flow is calculated by differencing inflow credit and
-    outflow debit transactions across all of a user's depository accounts during the
-    given period.
+    days and 61-90 days. Net cash flow is calculated by differencing cash-in (credit)
+    and cahs-out (debit) transactions across all of a user's depository accounts during
+    the given period.
 
     Args:
         api_client: Pngme API client
@@ -47,19 +47,19 @@ def get_net_cash_flow(
 
     transaction_df = pd.DataFrame(record_list)
 
-    # Get the total inbound credit over a period
-    inflow_amount = transaction_df[
+    # Get the total cash-in (credit) amount over a period
+    cash_in_amount = transaction_df[
         (transaction_df.impact == "CREDIT")
         & (transaction_df.account_type == "depository")
     ].amount.sum()
 
-    # Get the total outbound debit over a period
-    outflow_amount = transaction_df[
+    # Get the total cash-out (debit) amount over a period
+    cash_out_amount = transaction_df[
         (transaction_df.impact == "DEBIT")
         & (transaction_df.account_type == "depository")
     ].amount.sum()
 
-    total_net_cash_flow = inflow_amount - outflow_amount
+    total_net_cash_flow = cash_in_amount - cash_out_amount
     return total_net_cash_flow
 
 

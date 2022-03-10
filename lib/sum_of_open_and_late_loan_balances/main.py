@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 
 import os
+from typing import Optional
 
 from pngme.api import Client
 
 
-def get_nondefault_loan_balance(client: Client, user_uuid: str) -> float:
-    """Return the sum of nondefault tradelines.
+def get_sum_of_open_and_late_loan_balances(
+    client: Client, user_uuid: str
+) -> Optional[float]:
+    """Return the sum of open and late-payment loan balances
 
     Uses the credit report resource to sum the value of open and late payment
     tradelines to estimate current loan balance.
@@ -14,23 +17,30 @@ def get_nondefault_loan_balance(client: Client, user_uuid: str) -> float:
     Args:
         client: Pngme API client
         user_uuid: Pngme mobile phone user_uuid
+
+    Returns:
+        Total open and late loan balances, or None if a credit report cannot be
+        generated for the given user.
     """
 
     credit_report = client.credit_report.get(user_uuid)
 
+    if not credit_report:
+        return None
+
     # Sum the values of all open and late_payment tradelines.
-    nondefault_tradelines = [
+    tradedlines = [
         *credit_report["tradelines"]["open"],
         *credit_report["tradelines"]["late_payments"],
     ]
 
-    nondefault_loan_balance = 0
-    for tradeline in nondefault_tradelines:
+    total_loan_balances = 0
+    for tradeline in tradedlines:
         amount = tradeline["amount"]
         if amount:
-            nondefault_loan_balance += amount
+            total_loan_balances += amount
 
-    return nondefault_loan_balance
+    return total_loan_balances
 
 
 if __name__ == "__main__":
@@ -40,8 +50,8 @@ if __name__ == "__main__":
     token = os.environ["PNGME_TOKEN"]
     client = Client(token)
 
-    nondefault_loan_balance = get_nondefault_loan_balance(
+    sum_of_open_and_late_loan_balances = get_sum_of_open_and_late_loan_balances(
         client=client, user_uuid=user_uuid
     )
 
-    print(nondefault_loan_balance)
+    print(sum_of_open_and_late_loan_balances)
