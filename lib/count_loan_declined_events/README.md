@@ -1,4 +1,4 @@
-# Count overdraft events
+# Count Loan Declined Events
 
 1. Create and activate a virtual environment:
 

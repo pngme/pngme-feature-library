@@ -1,4 +1,4 @@
-# Count insufficient funds events
+# Sum of Default Loan Balances
 
 1. Create and activate a virtual environment:
 
