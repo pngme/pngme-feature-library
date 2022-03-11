@@ -38,42 +38,39 @@ def get_average_end_of_day_balance(
             utc_starttime=all_pages_starttime,
             utc_endtime=all_pages_utc_endtime,
         )
-        # convert to records
         depository_records = [
-            dict(institution_balance)
-            for institution_balance in institution_balance_records
-            if (institution_balance.account_type == "depository")
+            balance_record.dict()
+            for balance_record in institution_balance_records
+            if (balance_record.account_type == "depository")
         ]
-        balance_df = pd.DataFrame.from_records(depository_records)
-        balance_df = balance_df.assign(institution_name=institution_id)
-        balance_df_list.append(balance_df)
+        institution_balances_df = pd.DataFrame(depository_records)
+        institution_balances_df = institution_balances_df.assign(
+            institution_name=institution_id
+        )
+        balance_df_list.append(institution_balances_df)
 
     # 1. Combine all institution balances into single dataframe
-    institution_balances_df = pd.concat(balance_df_list)
-    if institution_balances_df.empty:
+    balances_df = pd.concat(balance_df_list)
+    if balances_df.empty:
         return None
 
     # 2. Sort and create a column for day, filter by time window
-    institution_balances_df = institution_balances_df.sort_values("ts")
-    institution_balances_df["yyyymmdd"] = pd.to_datetime(
-        institution_balances_df["ts"], unit="s"
-    )
-    institution_balances_df["yyyymmdd"] = institution_balances_df["yyyymmdd"].dt.floor(
-        "D"
-    )
+    balances_df = balances_df.sort_values("ts")
+    balances_df["yyyymmdd"] = pd.to_datetime(balances_df["ts"], unit="s")
+    balances_df["yyyymmdd"] = balances_df["yyyymmdd"].dt.floor("D")
 
     # 3. Filter time window
-    institution_balances_df = institution_balances_df[
-        (institution_balances_df["yyyymmdd"] >= utc_starttime)
-        & (institution_balances_df["yyyymmdd"] <= utc_endtime)
+    balances_df = balances_df[
+        (balances_df["yyyymmdd"] >= utc_starttime)
+        & (balances_df["yyyymmdd"] <= utc_endtime)
     ]
-    if institution_balances_df.empty:
+    if balances_df.empty:
         return None
 
     # 4. Get end of day balances,
     # If an account changes balances three times a day in sequence, i.e. $100, $20, $120),
     # take the last one ($120)
-    eod_balances = institution_balances_df.groupby(
+    eod_balances = balances_df.groupby(
         ["yyyymmdd", "account_number", "institution_name"]
     ).tail(1)
     eod_balances = eod_balances.set_index("yyyymmdd")
