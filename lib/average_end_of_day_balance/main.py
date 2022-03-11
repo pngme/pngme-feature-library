@@ -6,7 +6,7 @@ import pandas as pd
 from pngme.api import Client
 
 
-def get_avg_end_of_day_balance(
+def get_average_end_of_day_balance(
     client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
 ) -> Optional[float]:
     """Calculates the average end-of-day total balance for a user across all
@@ -104,15 +104,15 @@ if __name__ == "__main__":
     now_less_60 = now - timedelta(days=60)
     now_less_90 = now - timedelta(days=90)
 
-    average_end_of_day_balance_0_30 = get_avg_end_of_day_balance(
+    average_end_of_day_balance_0_30 = get_average_end_of_day_balance(
         client, user_uuid=user_uuid, utc_starttime=now_less_30, utc_endtime=now
     )
 
-    average_end_of_day_balance_31_60 = get_avg_end_of_day_balance(
+    average_end_of_day_balance_31_60 = get_average_end_of_day_balance(
         client, user_uuid=user_uuid, utc_starttime=now_less_60, utc_endtime=now_less_30
     )
 
-    average_end_of_day_balance_61_90 = get_avg_end_of_day_balance(
+    average_end_of_day_balance_61_90 = get_average_end_of_day_balance(
         client, user_uuid=user_uuid, utc_starttime=now_less_90, utc_endtime=now_less_60
     )
 
