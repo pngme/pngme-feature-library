@@ -98,7 +98,6 @@ if __name__ == "__main__":
 
     client = Client(token)
 
-    # avg_daily_balance_0_30
     now = datetime(2021, 10, 1)
     now_less_30 = now - timedelta(days=30)
     now_less_60 = now - timedelta(days=60)
