@@ -11,6 +11,7 @@ A collection of code examples which generate modelling features for a mobile pho
 
 | Name                                                                         | Description                                                                                                                            |
 |------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------|
+| [count_betting_and_lettery_events_0_90](lib/count_betting_and_lottery_events)| count of betting and lottery events across all accounts over 0-90 days                                                                 |
 | [count_insufficient_funds_events_0_30](lib/count_insufficient_funds_events)  | count of insufficient funds events across all accounts over 0-30 days                                                                  |
 | [count_insufficient_funds_events_31_60](lib/count_insufficient_funds_events) | count of insufficient funds events across all accounts over 31-60 days                                                                 |
 | [count_insufficient_funds_events_61_90](lib/count_insufficient_funds_events) | count of insufficient funds events across all accounts over 61-90 days                                                                 |
