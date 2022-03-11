@@ -20,7 +20,7 @@ def get_count_betting_and_lottery_events(
     Returns:
         count of events associated with gambling behavior events within the given time window
     """
-    labels = "BettingAndLottery"
+    label = "BettingAndLottery"
 
     institutions = api_client.institutions.get(user_uuid=user_uuid)
 
@@ -31,7 +31,7 @@ def get_count_betting_and_lottery_events(
             institution_id=individual_account.institution_id,
             utc_starttime=utc_starttime,
             utc_endtime=utc_endtime,
-            labels=[labels],
+            labels=[label],
         )
         count_events += len(events)
 

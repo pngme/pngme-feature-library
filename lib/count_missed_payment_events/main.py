@@ -21,7 +21,7 @@ def get_count_missed_payment_events(
         count of events where a user has missed the scheduled payment date for a loan
         within the given time window
     """
-    labels = "MissedPayment"
+    label = "MissedPayment"
 
     institutions = api_client.institutions.get(user_uuid=user_uuid)
 
@@ -32,7 +32,7 @@ def get_count_missed_payment_events(
             institution_id=individual_account.institution_id,
             utc_starttime=utc_starttime,
             utc_endtime=utc_endtime,
-            labels=[labels],
+            labels=[label],
         )
         count_events += len(events)
 
