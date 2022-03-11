@@ -1,4 +1,4 @@
-# Get Average Daily Balance
+# Get Average End-of-Day Balance
 
 1. Create and activate a virtual environment:
 

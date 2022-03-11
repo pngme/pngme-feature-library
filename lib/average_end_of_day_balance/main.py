@@ -6,57 +6,61 @@ import pandas as pd
 from pngme.api import Client
 
 
-def get_avg_daily_balance(
+def get_avg_end_of_day_balance(
     client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
-) -> float:
-    """Calculates the average daily account balance for a user across all
-       of their accounts for a given time window. 
+) -> Optional[float]:
+    """Calculates the average end-of-day total balance for a user across all
+       of their accounts for a given time window.
 
        Typical date ranges are last 30 days, 31-60 days and 61-90 days.
-       
+       If no balance data was found, return None.
+
     Args:
         client: Pngme API client
         user_uuid: the Pngme user_uuid for the mobile phone user
         utc_starttime: the datetime for the left-hand-side of the time-window
         utc_endtime: the datetime for the right-hand-side of the time-window
     Returns:
-        the average daily account balance for a given time window
+        the average end-of-day total balance for a given time window
     """
     institutions = client.institutions.get(user_uuid)
-    institution_balances = []
+    balance_df_list = []
 
     today = datetime.today()
     all_pages_utc_endtime = datetime(today.year, today.month, today.day)
-    all_pages_starttime = all_pages_utc_endtime - timedelta(days=1e5)  # get all pages
+    all_pages_starttime = all_pages_utc_endtime - timedelta(days=1e5)
 
-    # 0. Get all balances for a user
     for institution in institutions:
         institution_id = institution.institution_id
-        balances = client.balances.get(
+        institution_balance_records = client.balances.get(
             user_uuid=user_uuid,
             institution_id=institution_id,
             utc_starttime=all_pages_starttime,
             utc_endtime=all_pages_utc_endtime,
         )
         # convert to records
-        balances = [
-            balance.dict()
-            for balance in balances
-            if (balance.account_type == "depository")
+        depository_records = [
+            dict(institution_balance)
+            for institution_balance in institution_balance_records
+            if (institution_balance.account_type == "depository")
         ]
-        balances = pd.DataFrame.from_records(balances)
-        balances = balances.assign(institution_name=institution_id)
-        institution_balances.append(balances)
+        balance_df = pd.DataFrame.from_records(depository_records)
+        balance_df = balance_df.assign(institution_name=institution_id)
+        balance_df_list.append(balance_df)
 
     # 1. Combine all institution balances into single dataframe
-    institution_balances_df = pd.concat(institution_balances)
+    institution_balances_df = pd.concat(balance_df_list)
     if institution_balances_df.empty:
         return None
 
     # 2. Sort and create a column for day, filter by time window
     institution_balances_df = institution_balances_df.sort_values("ts")
-    institution_balances_df["yyyymmdd"] = pd.to_datetime(institution_balances_df['ts'], unit='s')
-    institution_balances_df["yyyymmdd"] = institution_balances_df["yyyymmdd"].dt.floor("D")
+    institution_balances_df["yyyymmdd"] = pd.to_datetime(
+        institution_balances_df["ts"], unit="s"
+    )
+    institution_balances_df["yyyymmdd"] = institution_balances_df["yyyymmdd"].dt.floor(
+        "D"
+    )
 
     # 3. Filter time window
     institution_balances_df = institution_balances_df[
@@ -66,7 +70,9 @@ def get_avg_daily_balance(
     if institution_balances_df.empty:
         return None
 
-    # 4. Get end of day balances, if an account changes balances three times a day ($100, $20, $120), take the last one ($120)
+    # 4. Get end of day balances,
+    # If an account changes balances three times a day in sequence, i.e. $100, $20, $120),
+    # take the last one ($120)
     eod_balances = institution_balances_df.groupby(
         ["yyyymmdd", "account_number", "institution_name"]
     ).tail(1)
@@ -98,18 +104,18 @@ if __name__ == "__main__":
     now_less_60 = now - timedelta(days=60)
     now_less_90 = now - timedelta(days=90)
 
-    avg_daily_balance_0_30 = get_avg_daily_balance(
+    average_end_of_day_balance_0_30 = get_avg_end_of_day_balance(
         client, user_uuid=user_uuid, utc_starttime=now_less_30, utc_endtime=now
     )
 
-    avg_daily_balance_31_60 = get_avg_daily_balance(
+    average_end_of_day_balance_31_60 = get_avg_end_of_day_balance(
         client, user_uuid=user_uuid, utc_starttime=now_less_60, utc_endtime=now_less_30
     )
 
-    avg_daily_balance_61_90 = get_avg_daily_balance(
+    average_end_of_day_balance_61_90 = get_avg_end_of_day_balance(
         client, user_uuid=user_uuid, utc_starttime=now_less_90, utc_endtime=now_less_60
     )
 
-    print(avg_daily_balance_0_30)
-    print(avg_daily_balance_31_60)
-    print(avg_daily_balance_61_90)
+    print(average_end_of_day_balance_0_30)
+    print(average_end_of_day_balance_31_60)
+    print(average_end_of_day_balance_61_90)

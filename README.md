@@ -38,6 +38,6 @@ A collection of code examples which generate modelling features for a mobile pho
 | [sum_of_open_and_late_loan_balances](lib/sum_of_open_and_late_loan_balances) | proxy for outstanding debt. sum of open and late-payment loan balance                                                                  |
 | [sum_of_default_loan_balances](lib/sum_of_default_loan_balances)             | sum of default loan balances                                                                                                           |
 | [debt_to_income_ratio_latest](lib/debt_to_income_ratio_latest)               | ratio between the sum of the non-closed tradline balances and sum of credit transactions across all depository accounts over 0-30 days |
-| [avg_daily_balance_0_30](lib/average_daily_balance)                               | average daily balance. average daily balance across all depository accounts over 0-30 days  |
-| [avg_daily_balance_31_60](lib/average_daily_balance)                              | average daily balance. average daily balance across all depository accounts over 31-60 days  |
-| [avg_daily_balance_61_90](lib/average_daily_balance)                               | average daily balance. average daily balance across all depository accounts over 61-90 days  |
+| [average_end_of_day_balance_0_30](lib/average_end_of_day_balance)            | average end-of-day total balance across all depository accounts over 0-30 days                                                         |
+| [average_end_of_day_balance_31_60](lib/average_end_of_day_balance)           | average end-of-day total balance across all depository accounts over 31-60 days                                                        |
+| [average_end_of_day_balance_61_90](lib/average_end_of_day_balance)           | average end-of-day total balance across all depository accounts over 61-90 days                                                        |
