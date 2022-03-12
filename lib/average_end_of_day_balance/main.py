@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 from datetime import datetime, timedelta
 from typing import Optional
@@ -20,6 +22,7 @@ def get_average_end_of_day_balance(
         user_uuid: the Pngme user_uuid for the mobile phone user
         utc_starttime: the datetime for the left-hand-side of the time-window
         utc_endtime: the datetime for the right-hand-side of the time-window
+
     Returns:
         the average end-of-day total balance for a given time window
     """
@@ -38,11 +41,16 @@ def get_average_end_of_day_balance(
             utc_starttime=all_pages_starttime,
             utc_endtime=all_pages_utc_endtime,
         )
-        depository_records = [
-            balance_record.dict()
-            for balance_record in institution_balance_records
-            if (balance_record.account_type == "depository")
-        ]
+        depository_records = []
+        for balance_record in institution_balance_records:
+            if balance_record.account_type == "depository":
+                balance_record_dict = balance_record.dict()
+                depository_records.append(
+                    {
+                        key: balance_record_dict[key]
+                        for key in ["account_number", "ts", "balance"]
+                    }
+                )
         institution_balances_df = pd.DataFrame(depository_records)
         institution_balances_df = institution_balances_df.assign(
             institution_name=institution_id
@@ -59,30 +67,33 @@ def get_average_end_of_day_balance(
     balances_df["yyyymmdd"] = pd.to_datetime(balances_df["ts"], unit="s")
     balances_df["yyyymmdd"] = balances_df["yyyymmdd"].dt.floor("D")
 
-    # 3. Filter time window
-    balances_df = balances_df[
-        (balances_df["yyyymmdd"] >= utc_starttime)
-        & (balances_df["yyyymmdd"] <= utc_endtime)
-    ]
-    if balances_df.empty:
-        return None
-
-    # 4. Get end of day balances,
+    # 3. Get end of day balances,
     # If an account changes balances three times a day in sequence, i.e. $100, $20, $120),
     # take the last one ($120)
-    eod_balances = balances_df.groupby(
-        ["yyyymmdd", "account_number", "institution_name"]
-    ).tail(1)
-    eod_balances = eod_balances.set_index("yyyymmdd")
+    eod_balances = (
+        balances_df.groupby(["yyyymmdd", "account_number", "institution_name"])
+        .tail(1)
+        .set_index("yyyymmdd")
+    )
 
-    # 5. Forward fill missing days. Average all balances and calculate a global sum
+    # 4. First Forward fill missing days
     ffilled_balances = (
         eod_balances.groupby(["institution_name", "account_number"])["balance"]
         .resample("1D", kind="timestamp")
         .ffill()
+        .reset_index()
     )
-    avg_daily_balance = (
-        ffilled_balances.groupby(["institution_name", "account_number"]).mean().sum()
+
+    # 5. Filter time window
+    ffilled_balances_in_time_window = ffilled_balances[
+        ffilled_balances["yyyymmdd"].between(utc_starttime, utc_endtime)
+    ]
+
+    # 6. Average all balances and calculate a global sum
+    avg_daily_balance = float(
+        ffilled_balances_in_time_window.groupby(["institution_name", "account_number"])
+        .mean()
+        .sum()
     )
 
     return avg_daily_balance
