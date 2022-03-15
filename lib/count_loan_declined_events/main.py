@@ -22,7 +22,7 @@ def get_count_loan_declined_events(
     Returns:
         count of loan declined events within the given time window
     """
-    overdraft_label = "LoanDeclined"
+    label = "LoanDeclined"
 
     institutions = api_client.institutions.get(user_uuid)
 
@@ -33,7 +33,7 @@ def get_count_loan_declined_events(
             institution_id=institution.institution_id,
             utc_starttime=utc_starttime,
             utc_endtime=utc_endtime,
-            labels=[overdraft_label],
+            labels=[label],
         )
         count_loan_declined += len(loan_declined_events)
 
