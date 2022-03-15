@@ -23,7 +23,7 @@ def get_count_overdraft_events(
     Returns:
         count of overdraft events within the given time window
     """
-    overdraft_label = "Overdraft"
+    label = "Overdraft"
 
     institutions = api_client.institutions.get(user_uuid)
 
@@ -34,7 +34,7 @@ def get_count_overdraft_events(
             institution_id=institution.institution_id,
             utc_starttime=utc_starttime,
             utc_endtime=utc_endtime,
-            labels=[overdraft_label],
+            labels=[label],
         )
         overdraft_count += len(overdraft_events)
 
