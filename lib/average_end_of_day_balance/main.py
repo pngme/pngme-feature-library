@@ -29,10 +29,8 @@ def get_average_end_of_day_balance(
     institutions = client.institutions.get(user_uuid)
     balance_df_list = []
 
-    """
-    Default Pngme balance API without time range input returns the latest balance data for an institution
-    Construct a time range in the API request to fetch all historical balance data
-    """
+    # Construct timerange since beginning of time
+    # as default /balances endpoint only returns the latest balance
     today = datetime.today()
     all_pages_utc_endtime = datetime(today.year, today.month, today.day)
     all_pages_starttime = all_pages_utc_endtime - timedelta(days=1e5)
