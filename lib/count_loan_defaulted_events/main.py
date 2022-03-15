@@ -27,14 +27,14 @@ def get_count_loan_defaulted_events(
 
     count = 0
     for institution in institutions:
-        overdraft_events = api_client.alerts.get(
+        events = api_client.alerts.get(
             user_uuid=user_uuid,
             institution_id=institution.institution_id,
             utc_starttime=utc_starttime,
             utc_endtime=utc_endtime,
             labels=[label],
         )
-        count += len(overdraft_events)
+        count += len(events)
 
     return count
 
