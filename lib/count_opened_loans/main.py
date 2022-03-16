@@ -50,7 +50,7 @@ if __name__ == "__main__":
     token = os.environ["PNGME_TOKEN"]
     client = Client(token)
 
-    now = datetime(2022, 3, 1)
+    now = datetime(2021, 11, 1)
     now_less_30 = now - timedelta(days=30)
     now_less_60 = now - timedelta(days=60)
     now_less_90 = now - timedelta(days=90)
