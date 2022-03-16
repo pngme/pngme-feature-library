@@ -48,11 +48,11 @@ if __name__ == "__main__":
     now = datetime(2021, 11, 1)
     now_less_90 = now - timedelta(days=90)
 
-    count_betting_and_lettery_events_0_90 = get_count_betting_and_lottery_events(
+    count_betting_and_lottery_events_0_90 = get_count_betting_and_lottery_events(
         api_client=client,
         user_uuid=user_uuid,
         utc_starttime=now_less_90,
         utc_endtime=now,
     )
 
-    print(count_betting_and_lettery_events_0_90)
+    print(count_betting_and_lottery_events_0_90)
