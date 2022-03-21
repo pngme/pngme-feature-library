@@ -1,45 +1,46 @@
 #!/usr/bin/env python3
 
+import asyncio
 import os
 from datetime import datetime, timedelta
 import pandas as pd  # type: ignore
 from typing import Tuple
 
-from pngme.api import Client
+from pngme.api import AsyncClient
 
 
-def get_sum_of_credits(api_client: Client, user_uuid: str, utc_time: datetime) -> Tuple[float, float, float]:
-    """Sum credit transactions across all depository accounts in a given period.
+async def get_sum_of_credits(api_client: AsyncClient, user_uuid: str, utc_time: datetime) -> Tuple[float, float, float]:
+    """
+    Sum credit transactions across all depository accounts in a given period.
 
     No currency conversions are performed.
 
     Date ranges are 30 days, 31-60 days and 61-90 days.
-
     Sum of credits is calculated by totaling credit transactions
     across all of a user's depository accounts during the given time period.
 
     Args:
-        api_client: Pngme API client
+        api_client: Pngme Async API client
         user_uuid: the Pngme user_uuid for the mobile phone user
         utc_time: the time-zero to use in constructing the 0-30, 31-60 and 61-90 windows
 
     Returns:
-        the sum total of all credit transaction amounts
+        the sum total of all credit transaction amounts over the predefined ranges.
     """
-    institutions = api_client.institutions.get(user_uuid=user_uuid)
+    institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
     # Constructs a dataframe that contains transactions from all institutions for the user
     record_list = []
     utc_starttime = utc_time - timedelta(days=90)
-
-    for institution in institutions:
-        transactions = api_client.transactions.get(
-            user_uuid=user_uuid,
-            institution_id=institution.institution_id,
-            utc_starttime=utc_starttime,
-            utc_endtime=utc_time,
-        )
-        record_list.extend([dict(transaction) for transaction in transactions])
+    inst_coroutines = [
+        api_client.transactions.get(user_uuid=user_uuid,
+                                    institution_id=institution.institution_id,
+                                    utc_starttime=utc_starttime,
+                                    utc_endtime=utc_time)
+        for institution in institutions]
+    r = await asyncio.gather(*inst_coroutines)
+    for inst_lst in r:
+        record_list.extend([dict(transaction) for transaction in inst_lst])
 
     # if no data available for the user, assume cash-in is zero
     if len(record_list) == 0:
@@ -69,16 +70,15 @@ if __name__ == "__main__":
     user_uuid = "958a5ae8-f3a3-41d5-ae48-177fdc19e3f4"
 
     token = os.environ["PNGME_TOKEN"]
-    client = Client(token)
+    client = AsyncClient(token)
 
     now = datetime(2021, 10, 1)
+    ts = datetime.now()
 
-    soc_0_30, soc_31_60, soc_61_90 = get_sum_of_credits(
-        api_client=client,
-        user_uuid=user_uuid,
-        utc_time=now
-    )
+    async def main():
+        soc_0_30, soc_31_60, soc_61_90 = await get_sum_of_credits(client, user_uuid, now)
+        print(soc_0_30)
+        print(soc_31_60)
+        print(soc_61_90)
 
-    print(soc_0_30)
-    print(soc_31_60)
-    print(soc_61_90)
+    asyncio.run(main())
