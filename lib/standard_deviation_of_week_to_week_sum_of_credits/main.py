@@ -9,12 +9,12 @@ from pngme.api import Client
 
 
 def get_standard_deviation_of_week_to_week_sum_of_credits(
-    api_client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
+    client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
 ) -> Optional[float]:
     """Compute the standard deviations of week-to-week sum of credits
 
     Args:
-        api_client: Pngme API client
+        client: Pngme API client
         user_uuid: the Pngme user_uuid for the mobile phone user
         utc_starttime: the datetime for the left-hand-side of the time-window
         utc_endtime: the datetime for the right-hand-side of the time-window
@@ -22,12 +22,12 @@ def get_standard_deviation_of_week_to_week_sum_of_credits(
     Returns:
         Standard deviation of week-to-week sum of credits
     """
-    institutions = api_client.institutions.get(user_uuid=user_uuid)
+    institutions = client.institutions.get(user_uuid=user_uuid)
 
     # Constructs a dataframe that contains transactions from all institutions for the user
     record_list = []
     for institution in institutions:
-        transactions = api_client.transactions.get(
+        transactions = client.transactions.get(
             user_uuid=user_uuid,
             institution_id=institution.institution_id,
             utc_starttime=utc_starttime,
@@ -65,7 +65,7 @@ if __name__ == "__main__":
 
     standard_deviation_of_week_to_week_sum_of_credits_0_84 = (
         get_standard_deviation_of_week_to_week_sum_of_credits(
-            api_client=client,
+            client=client,
             user_uuid=user_uuid,
             utc_starttime=now_less_84,
             utc_endtime=now,
