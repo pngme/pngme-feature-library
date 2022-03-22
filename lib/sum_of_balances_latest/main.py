@@ -31,15 +31,18 @@ async def get_sum_of_balances_latest(
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
     utc_starttime = utc_time - cutoff_interval
 
+    # subset to only fetch data for institutions known to contain depository-type accounts for the user
+    institutions_w_depository = [inst for inst in institutions if "depository" in inst.account_types]
+
     inst_coroutines = [
         api_client.balances.get(
             user_uuid=user_uuid,
             institution_id=institution.institution_id,
             utc_starttime=utc_starttime,
             utc_endtime=utc_time,
-            account_types=['depository'],
+            account_types=["depository"],
         )
-        for institution in institutions
+        for institution in institutions_w_depository
     ]
 
     r = await asyncio.gather(*inst_coroutines)
@@ -54,7 +57,7 @@ async def get_sum_of_balances_latest(
     balances_df = pd.DataFrame(record_list)
     # sort df desc so we can take the top values as latest ts within each group
     balances_df.sort_values(by=['ts'], ascending=False, inplace=True)
-    sum_of_balances_latest = balances_df.groupby(["institution_id", "account_number"]).head(1)['balance'].sum()
+    sum_of_balances_latest = balances_df.groupby(["institution_id", "account_number"]).head(1)["balance"].sum()
     return sum_of_balances_latest
 
 
@@ -72,5 +75,4 @@ if __name__ == "__main__":
             client, user_uuid, now
         )
         print(sum_of_balances_latest)
-
     asyncio.run(main())
