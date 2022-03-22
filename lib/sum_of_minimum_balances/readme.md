@@ -22,5 +22,5 @@ export PNGME_TOKEN="eyJraWQiOiJcL3d..."
 4. Run the example:
 
 ```bash
-python3 sum_of_minimum_balances.py
+python3 main.py
 ```
