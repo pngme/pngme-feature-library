@@ -52,7 +52,7 @@ async def get_count_overdraft_events(
 
     record_df = pd.DataFrame(record_list)
 
-    # Get the total inbound credit over a period
+    # Create time windows for 30d, 60d and 90d
     ts_30 = (utc_time - timedelta(days=30)).timestamp()
     ts_60 = (utc_time - timedelta(days=60)).timestamp()
     ts_90 = (utc_time - timedelta(days=90)).timestamp()
