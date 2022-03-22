@@ -1,74 +1,108 @@
 #!/usr/bin/env python3
-
+import asyncio
 import os
 from datetime import datetime, timedelta
 
-from pngme.api import Client
+import pandas as pd  # type: ignore
+from typing import Tuple
+
+from pngme.api import AsyncClient
 
 
-def get_sum_of_balances_latest(
-    client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
-) -> float:
-    """Return the latest balance within the time range summed across all accounts.
+async def get_sum_of_balances_latest(
+    api_client: AsyncClient, user_uuid: str, utc_time: datetime
+) -> Tuple[float, float, float]:
+    """Return the latest balance within the time ranges (30d, 60d, 90d) summed across all accounts.
 
     If an account does not contain any balance notifications within the time window,
     it is considered stale and not included in the total balance.
 
     Args:
-        client: Pngme API client
+        api_client: Pngme Async API client
         user_uuid: Pngme mobile phone user_uuid
-        utc_starttime: start of the time window
-        utc_endtime: end of the time window
-    """
-    institutions = client.institutions.get(user_uuid)
+        utc_time: the time-zero to use in constructing the 0-30, 31-60 and 61-90 windows
 
-    # Sum the most recent balances from each account within our time window.
-    sum_of_balances_latest = 0
-    for institution in institutions:
-        institution_id = institution.institution_id
-        balances = client.balances.get(
-            user_uuid,
-            institution_id,
+    Returns:
+        The latest balance within the time ranges (30d, 60d, 90d) summed across all accounts
+    """
+
+    # Sum the most recent balances from each account within 30d, 60d and 90d windows.
+    sum_of_balances_latest_0_30 = 0
+    sum_of_balances_latest_31_60 = 0
+    sum_of_balances_latest_61_90 = 0
+
+    institutions = await api_client.institutions.get(user_uuid=user_uuid)
+    utc_starttime = utc_time - timedelta(days=90)
+
+    inst_coroutines = [
+        api_client.balances.get(
+            user_uuid=user_uuid,
+            institution_id=institution.institution_id,
             utc_starttime=utc_starttime,
-            utc_endtime=utc_endtime,
+            utc_endtime=utc_time,
+        )
+        for institution in institutions
+    ]
+
+    r = await asyncio.gather(*inst_coroutines)
+
+    record_list = []
+    for inst_list in r:
+        record_list.extend(
+            [
+                dict(balance)
+                for balance in inst_list
+                if balance.account_type == "depository"
+            ]
         )
 
-        # Add latest account balance for each account within the institution.
-        account_numbers = {balance.account_number for balance in balances}
-        for account_number in account_numbers:
-            depository_balances = [
-                balance
-                for balance in balances
-                if balance.account_type == "depository"
-                and balance.account_number == account_number
-            ]
-            if depository_balances:
-                # Find latest balance record by sorting in time.
-                latest_balance = sorted(
-                    depository_balances,
-                    key=lambda balance: balance.ts,
-                    reverse=True,
-                )[0]
-                sum_of_balances_latest += latest_balance.balance
+    record_df = pd.DataFrame(record_list)
 
-    return sum_of_balances_latest
+    # Get the total outbound debit over a period
+    ts_30 = (utc_time - timedelta(days=30)).timestamp()
+    ts_60 = (utc_time - timedelta(days=60)).timestamp()
+    ts_90 = (utc_time - timedelta(days=90)).timestamp()
+
+    # Add latest account balance for each account within the institution.
+    unique_account_numbers = set(record_df["account_number"].to_list())
+    for account_number in unique_account_numbers:
+        filter_base = record_df.account_number == account_number
+
+        filter_0_30 = filter_base & (record_df.ts >= ts_30)
+        filter_31_60 = filter_base & (record_df.ts >= ts_60) & (record_df.ts < ts_30)
+        filter_61_90 = filter_base & (record_df.ts >= ts_90) & (record_df.ts < ts_60)
+
+        sorted_df_0_30 = record_df[filter_0_30].sort_values(by="ts", ascending=False)
+        sum_of_balances_latest_0_30 += sorted_df_0_30.iloc[0]["balance"]
+        sorted_df_31_60 = record_df[filter_31_60].sort_values(by="ts", ascending=False)
+        sum_of_balances_latest_31_60 += sorted_df_31_60.iloc[0]["balance"]
+        sorted_df_61_90 = record_df[filter_61_90].sort_values(by="ts", ascending=False)
+        sum_of_balances_latest_61_90 += sorted_df_61_90.iloc[0]["balance"]
+
+    return (
+        sum_of_balances_latest_0_30,
+        sum_of_balances_latest_31_60,
+        sum_of_balances_latest_61_90,
+    )
 
 
 if __name__ == "__main__":
     # Mercy Otingo, mercy@pngme.demo, 234112312
     user_uuid = "958a5ae8-f3a3-41d5-ae48-177fdc19e3f4"
+
     token = os.environ["PNGME_TOKEN"]
+    client = AsyncClient(token)
 
-    client = Client(token)
+    now = datetime(2021, 10, 31)
 
-    utc_endtime = datetime(2021, 10, 31)
-    utc_starttime = utc_endtime - timedelta(days=30)
+    async def main():
+        (
+            sum_of_balances_latest_0_30,
+            sum_of_balances_latest_31_60,
+            sum_of_balances_latest_61_90,
+        ) = await get_sum_of_balances_latest(client, user_uuid, now)
+        print(sum_of_balances_latest_0_30)
+        print(sum_of_balances_latest_31_60)
+        print(sum_of_balances_latest_61_90)
 
-    sum_of_balances_latest = get_sum_of_balances_latest(
-        client=client,
-        user_uuid=user_uuid,
-        utc_starttime=utc_starttime,
-        utc_endtime=utc_endtime,
-    )
-
-    print(sum_of_balances_latest)
+    asyncio.run(main())
