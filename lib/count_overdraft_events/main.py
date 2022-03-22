@@ -56,8 +56,8 @@ async def get_count_overdraft_events(
     ts_30 = (utc_time - timedelta(days=30)).timestamp()
     ts_60 = (utc_time - timedelta(days=60)).timestamp()
     ts_90 = (utc_time - timedelta(days=90)).timestamp()
-    
-    filter_0_30 = (record_df.ts >= ts_30)
+
+    filter_0_30 = record_df.ts >= ts_30
     filter_31_60 = (record_df.ts >= ts_60) & (record_df.ts < ts_30)
     filter_61_90 = (record_df.ts >= ts_90) & (record_df.ts < ts_60)
 
@@ -65,7 +65,11 @@ async def get_count_overdraft_events(
     count_overdraft_events_31_60 = len(record_df[filter_31_60])
     count_overdraft_events_61_90 = len(record_df[filter_61_90])
 
-    return count_overdraft_events_0_30, count_overdraft_events_31_60, count_overdraft_events_61_90
+    return (
+        count_overdraft_events_0_30,
+        count_overdraft_events_31_60,
+        count_overdraft_events_61_90,
+    )
 
 
 if __name__ == "__main__":
@@ -78,9 +82,12 @@ if __name__ == "__main__":
     now = datetime(2021, 10, 1)
 
     async def main():
-        count_overdraft_events_0_30, count_overdraft_events_31_60, count_overdraft_events_61_90 = await get_count_overdraft_events(
-            client, user_uuid, now
-        )
+        (
+            count_overdraft_events_0_30,
+            count_overdraft_events_31_60,
+            count_overdraft_events_61_90,
+        ) = await get_count_overdraft_events(client, user_uuid, now)
+
         print(count_overdraft_events_0_30)
         print(count_overdraft_events_31_60)
         print(count_overdraft_events_61_90)
