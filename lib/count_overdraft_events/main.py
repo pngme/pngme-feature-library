@@ -80,7 +80,6 @@ if __name__ == "__main__":
     client = AsyncClient(token)
 
     now = datetime(2021, 10, 1)
-    ts = datetime.now()
 
     async def main():
         coe_0_30, coe_31_60, coe_61_90 = await get_count_overdraft_events(
