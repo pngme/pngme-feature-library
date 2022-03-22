@@ -56,20 +56,16 @@ async def get_count_overdraft_events(
     ts_30 = (utc_time - timedelta(days=30)).timestamp()
     ts_60 = (utc_time - timedelta(days=60)).timestamp()
     ts_90 = (utc_time - timedelta(days=90)).timestamp()
+    
+    filter_0_30 = (record_df.ts >= ts_30)
+    filter_31_60 = (record_df.ts >= ts_60) & (record_df.ts < ts_30)
+    filter_61_90 = (record_df.ts >= ts_90) & (record_df.ts < ts_60)
 
-    coe_0_30 = 0
-    coe_31_60 = 0
-    coe_61_90 = 0
+    count_overdraft_events_0_30 = len(record_df[filter_0_30])
+    count_overdraft_events_31_60 = len(record_df[filter_31_60])
+    count_overdraft_events_61_90 = len(record_df[filter_61_90])
 
-    for _, row in record_df.iterrows():
-        if row["ts"] >= ts_30:
-            coe_0_30 += 1
-        elif row["ts"] >= ts_60 and row["ts"] < ts_30:
-            coe_31_60 += 1
-        elif row["ts"] >= ts_90 and row["ts"] < ts_60:
-            coe_61_90 += 1
-
-    return coe_0_30, coe_31_60, coe_61_90
+    return count_overdraft_events_0_30, count_overdraft_events_31_60, count_overdraft_events_61_90
 
 
 if __name__ == "__main__":
@@ -82,11 +78,11 @@ if __name__ == "__main__":
     now = datetime(2021, 10, 1)
 
     async def main():
-        coe_0_30, coe_31_60, coe_61_90 = await get_count_overdraft_events(
+        count_overdraft_events_0_30, count_overdraft_events_31_60, count_overdraft_events_61_90 = await get_count_overdraft_events(
             client, user_uuid, now
         )
-        print(coe_0_30)
-        print(coe_31_60)
-        print(coe_61_90)
+        print(count_overdraft_events_0_30)
+        print(count_overdraft_events_31_60)
+        print(count_overdraft_events_61_90)
 
     asyncio.run(main())
