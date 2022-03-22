@@ -73,7 +73,6 @@ if __name__ == "__main__":
     client = AsyncClient(token)
 
     now = datetime(2021, 10, 1)
-    ts = datetime.now()
 
     async def main():
         soc_0_30, soc_31_60, soc_61_90 = await get_sum_of_credits(client, user_uuid, now)
