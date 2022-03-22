@@ -2,9 +2,7 @@
 import asyncio
 import os
 from datetime import datetime, timedelta
-
 import pandas as pd  # type: ignore
-from typing import Dict
 
 from pngme.api import AsyncClient
 
@@ -30,9 +28,6 @@ async def get_sum_of_balances_latest(
         The latest balance summed across all accounts
     """
 
-    # Sum the most recent balances from each account.
-    sum_of_balances_latest = 0
-
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
     utc_starttime = utc_time - cutoff_interval
 
@@ -42,38 +37,24 @@ async def get_sum_of_balances_latest(
             institution_id=institution.institution_id,
             utc_starttime=utc_starttime,
             utc_endtime=utc_time,
+            account_types=['depository'],
         )
         for institution in institutions
     ]
 
     r = await asyncio.gather(*inst_coroutines)
-    institution_ids = [institution.institution_id for institution in institutions]
+    record_list = []
+    for ix, inst_list in enumerate(r):
+        institution_id = institutions[ix].institution_id
+        record_list.extend([dict(transaction, institution_id=institution_id) for transaction in inst_list])
+    # consider the sum of balances to be zero, if no data is present
+    if len(record_list) == 0:
+        return 0.0
 
-    balances_by_institution_id = dict(zip(institution_ids, r))
-
-    depository_balance_df_by_institution_id: Dict[str, pd.DataFrame] = {}
-    for institution_id, balances in balances_by_institution_id.items():
-
-        depository_balances = [
-            balance for balance in balances if balance.account_type == "depository"
-        ]
-
-        if depository_balances:
-            depository_balance_df_by_institution_id[institution_id] = pd.DataFrame(
-                [balance.dict() for balance in depository_balances]
-            )
-
-    # Add latest account balance for each account within the institution.
-    for institution_id, balances_df in depository_balance_df_by_institution_id.items():
-        unique_account_numbers = set(balances_df["account_number"].to_list())
-        for account_number in unique_account_numbers:
-            filter_account_number = balances_df.account_number == account_number
-
-            sorted_df_by_timestamp = balances_df[filter_account_number].sort_values(
-                by="ts", ascending=False
-            )
-            sum_of_balances_latest += sorted_df_by_timestamp.iloc[0]["balance"]
-
+    balances_df = pd.DataFrame(record_list)
+    # sort df desc so we can take the top values as latest ts within each group
+    balances_df.sort_values(by=['ts'], ascending=False, inplace=True)
+    sum_of_balances_latest = balances_df.groupby(["institution_id", "account_number"]).head(1)['balance'].sum()
     return sum_of_balances_latest
 
 
