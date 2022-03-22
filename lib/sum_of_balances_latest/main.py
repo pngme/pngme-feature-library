@@ -4,7 +4,7 @@ import os
 from datetime import datetime, timedelta
 
 import pandas as pd  # type: ignore
-from typing import Dict, Tuple
+from typing import Dict
 
 from pngme.api import AsyncClient
 
