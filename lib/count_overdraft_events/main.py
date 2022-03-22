@@ -1,77 +1,93 @@
 #!/usr/bin/env python3
-
+import asyncio
 import os
 from datetime import datetime, timedelta
 
-from pngme.api import Client
+import pandas as pd  # type: ignore
+from typing import Tuple
+
+from pngme.api import AsyncClient
 
 
-def get_count_overdraft_events(
-    api_client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
-) -> float:
+async def get_count_overdraft_events(
+    api_client: AsyncClient, user_uuid: str, utc_time: datetime
+) -> Tuple[int, int, int]:
     """
-    Count events labelled with Overdraft across all institutions.
-
-    Typical date ranges are last 30 days, 31-60 days and 61-90 days.
+    Count events labelled with Overdraft across all institutions
+    over the following date ranges: last 30 days, 31-60 days and 61-90 days.
 
     Args:
-        api_client: Pngme API client
+        api_client: Pngme Async API client
         user_uuid: the Pngme user_uuid for the mobile phone user
-        utc_starttime: the datetime for the left-hand-side of the time-window
-        utc_endtime: the datetime for the right-hand-side of the time-window
+        utc_time: the time-zero to use in constructing the 0-30, 31-60 and 61-90 windows
 
     Returns:
         count of overdraft events within the given time window
     """
     label = "Overdraft"
 
-    institutions = api_client.institutions.get(user_uuid)
+    institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
-    overdraft_count = 0
-    for institution in institutions:
-        overdraft_events = api_client.alerts.get(
+    utc_starttime = utc_time - timedelta(days=90)
+    inst_coroutines = [
+        api_client.alerts.get(
             user_uuid=user_uuid,
             institution_id=institution.institution_id,
             utc_starttime=utc_starttime,
-            utc_endtime=utc_endtime,
+            utc_endtime=utc_time,
             labels=[label],
         )
-        overdraft_count += len(overdraft_events)
+        for institution in institutions
+    ]
 
-    return overdraft_count
+    r = await asyncio.gather(*inst_coroutines)
+
+    record_list = []
+    for inst_list in r:
+        record_list.extend([dict(alert) for alert in inst_list])
+
+    # if no data available for the user, assume count of overdraft event is zero
+    if len(record_list) == 0:
+        return 0, 0, 0
+
+    record_df = pd.DataFrame(record_list)
+
+    # Get the total inbound credit over a period
+    ts_30 = (utc_time - timedelta(days=30)).timestamp()
+    ts_60 = (utc_time - timedelta(days=60)).timestamp()
+    ts_90 = (utc_time - timedelta(days=90)).timestamp()
+
+    coe_0_30 = 0
+    coe_31_60 = 0
+    coe_61_90 = 0
+
+    for _, row in record_df.iterrows():
+        if row["ts"] >= ts_30:
+            coe_0_30 += 1
+        elif row["ts"] >= ts_60 and row["ts"] < ts_30:
+            coe_31_60 += 1
+        elif row["ts"] >= ts_90 and row["ts"] < ts_60:
+            coe_61_90 += 1
+
+    return coe_0_30, coe_31_60, coe_61_90
 
 
 if __name__ == "__main__":
-    # Mercy Otieno, mercy@pngme.demo.com, 254123456789
-    user_uuid = "958a5ae8-f3a3-41d5-ae48-177fdc19e3f4"
+    # Segun Sani, segun@pngme.demo.com, 2346789012345
+    user_uuid = "88719687-ec14-4cda-8262-c5da67228a67"
 
     token = os.environ["PNGME_TOKEN"]
-    client = Client(token)
+    client = AsyncClient(token)
 
     now = datetime(2021, 10, 1)
-    now_less_30 = now - timedelta(days=30)
-    now_less_60 = now - timedelta(days=60)
-    now_less_90 = now - timedelta(days=90)
+    ts = datetime.now()
 
-    count_overdraft_events_0_30 = get_count_overdraft_events(
-        api_client=client,
-        user_uuid=user_uuid,
-        utc_starttime=now_less_30,
-        utc_endtime=now,
-    )
-    count_overdraft_events_31_60 = get_count_overdraft_events(
-        api_client=client,
-        user_uuid=user_uuid,
-        utc_starttime=now_less_60,
-        utc_endtime=now_less_30,
-    )
-    count_overdraft_events_61_90 = get_count_overdraft_events(
-        api_client=client,
-        user_uuid=user_uuid,
-        utc_starttime=now_less_90,
-        utc_endtime=now_less_60,
-    )
+    async def main():
+        coe_0_30, coe_31_60, coe_61_90 = await get_count_overdraft_events(
+            client, user_uuid, now
+        )
+        print(coe_0_30)
+        print(coe_31_60)
+        print(coe_61_90)
 
-    print(count_overdraft_events_0_30)
-    print(count_overdraft_events_31_60)
-    print(count_overdraft_events_61_90)
+    asyncio.run(main())
