@@ -30,6 +30,9 @@ async def get_sum_of_debits(
     """
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
+    # subset to only fetch data for institutions known to contain depository-type accounts for the user
+    institutions_w_depository = [inst for inst in institutions if "depository" in inst.account_types]
+
     # Constructs a dataframe that contains transactions from all institutions for the user
     record_list = []
     utc_starttime = utc_time - timedelta(days=90)
@@ -39,8 +42,9 @@ async def get_sum_of_debits(
             institution_id=institution.institution_id,
             utc_starttime=utc_starttime,
             utc_endtime=utc_time,
+            account_types=["depository"],
         )
-        for institution in institutions
+        for institution in institutions_w_depository
     ]
     r = await asyncio.gather(*inst_coroutines)
     for inst_list in r:
@@ -57,12 +61,9 @@ async def get_sum_of_debits(
     ts_60 = (utc_time - timedelta(days=60)).timestamp()
     ts_90 = (utc_time - timedelta(days=90)).timestamp()
 
-    filter_base = (record_df.impact == "DEBIT") & (
-        record_df.account_type == "depository"
-    )
-    filter_0_30 = filter_base & (record_df.ts >= ts_30)
-    filter_31_60 = filter_base & (record_df.ts >= ts_60) & (record_df.ts < ts_30)
-    filter_61_90 = filter_base & (record_df.ts >= ts_90) & (record_df.ts < ts_60)
+    filter_0_30 = (record_df.impact == "DEBIT") & (record_df.ts >= ts_30)
+    filter_31_60 = (record_df.impact == "DEBIT") & (record_df.ts >= ts_60) & (record_df.ts < ts_30)
+    filter_61_90 = (record_df.impact == "DEBIT") & (record_df.ts >= ts_90) & (record_df.ts < ts_60)
 
     amount_0_30 = record_df[filter_0_30].amount.sum()
     amount_31_60 = record_df[filter_31_60].amount.sum()
