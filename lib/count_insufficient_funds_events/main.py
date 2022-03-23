@@ -29,7 +29,9 @@ async def get_count_insufficient_funds_events(
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
     # subset to only fetch data for institutions known to contain depository-type accounts for the user
-    institutions_w_depository = [inst for inst in institutions if "depository" in inst.account_types]
+    institutions_w_depository = [
+        inst for inst in institutions if "depository" in inst.account_types
+    ]
 
     utc_starttime = utc_time - timedelta(days=90)
     inst_coroutines = [

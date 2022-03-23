@@ -24,14 +24,20 @@ def get_standard_deviation_of_week_to_week_sum_of_credits(
     """
     institutions = client.institutions.get(user_uuid=user_uuid)
 
+    # subset to only fetch data for institutions known to contain depository-type accounts for the user
+    institutions_w_depository = [
+        inst for inst in institutions if "depository" in inst.account_types
+    ]
+
     # Constructs a dataframe that contains transactions from all institutions for the user
     record_list = []
-    for institution in institutions:
+    for institution in institutions_w_depository:
         transactions = client.transactions.get(
             user_uuid=user_uuid,
             institution_id=institution.institution_id,
             utc_starttime=utc_starttime,
             utc_endtime=utc_endtime,
+            account_types=["depository"],
         )
         record_list.extend([dict(transaction) for transaction in transactions])
 
@@ -40,9 +46,7 @@ def get_standard_deviation_of_week_to_week_sum_of_credits(
         return None
 
     record_df = pd.DataFrame(record_list)
-    credit_df = record_df[
-        (record_df.impact == "CREDIT") & (record_df.account_type == "depository")
-    ]
+    credit_df = record_df[(record_df.impact == "CREDIT")]
 
     # if no data available for credit, return None
     if credit_df.empty:

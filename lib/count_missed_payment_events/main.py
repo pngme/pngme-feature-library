@@ -28,6 +28,11 @@ async def get_count_missed_payment_events(
 
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
+    # subset to only fetch data for institutions known to contain loan-type accounts for the user
+    institutions_w_loan = [
+        inst for inst in institutions if "loan" in inst.account_types
+    ]
+
     utc_starttime = utc_time - timedelta(days=90)
     inst_coroutines = [
         api_client.alerts.get(
@@ -37,7 +42,7 @@ async def get_count_missed_payment_events(
             utc_endtime=utc_time,
             labels=[label],
         )
-        for institution in institutions
+        for institution in institutions_w_loan
     ]
 
     r = await asyncio.gather(*inst_coroutines)

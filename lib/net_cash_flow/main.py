@@ -29,15 +29,21 @@ def get_net_cash_flow(
     """
     institutions = api_client.institutions.get(user_uuid=user_uuid)
 
+    # subset to only fetch data for institutions known to contain depository-type accounts for the user
+    institutions_w_depository = [
+        inst for inst in institutions if "depository" in inst.account_types
+    ]
+
     # Constructs a dataframe that contains transactions from all accounts for the user
     record_list = []
-    for institution in institutions:
+    for institution in institutions_w_depository:
         institution_id = institution.institution_id
         transactions = api_client.transactions.get(
             user_uuid=user_uuid,
             institution_id=institution_id,
             utc_starttime=utc_starttime,
             utc_endtime=utc_endtime,
+            account_types=["depository"],
         )
         record_list.extend([dict(transaction) for transaction in transactions])
 
@@ -48,16 +54,10 @@ def get_net_cash_flow(
     transaction_df = pd.DataFrame(record_list)
 
     # Get the total cash-in (credit) amount over a period
-    cash_in_amount = transaction_df[
-        (transaction_df.impact == "CREDIT")
-        & (transaction_df.account_type == "depository")
-    ].amount.sum()
+    cash_in_amount = transaction_df[(transaction_df.impact == "CREDIT")].amount.sum()
 
     # Get the total cash-out (debit) amount over a period
-    cash_out_amount = transaction_df[
-        (transaction_df.impact == "DEBIT")
-        & (transaction_df.account_type == "depository")
-    ].amount.sum()
+    cash_out_amount = transaction_df[(transaction_df.impact == "DEBIT")].amount.sum()
 
     total_net_cash_flow = cash_in_amount - cash_out_amount
     return total_net_cash_flow
