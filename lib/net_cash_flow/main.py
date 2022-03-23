@@ -15,7 +15,7 @@ def get_net_cash_flow(
 
     No currency conversions are performed. Typical date ranges are last 30 days, 31-60
     days and 61-90 days. Net cash flow is calculated by differencing cash-in (credit)
-    and cahs-out (debit) transactions across all of a user's depository accounts during
+    and cash-out (debit) transactions across all of a user's depository accounts during
     the given period.
 
     Args:

@@ -13,7 +13,7 @@ async def get_count_loan_declined_events(
     api_client: AsyncClient, user_uuid: str, utc_time: datetime
 ) -> Tuple[int, int, int]:
     """
-    Count events labelled with LoanDeclined across all institutions
+    Count events labeled with LoanDeclined across all institutions
     over the following date ranges: last 30 days, 31-60 days and 61-90 days.
 
     Args:
