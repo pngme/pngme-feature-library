@@ -43,12 +43,12 @@ def get_sum_of_minimum_balances(
             account_types=["depository"],
         )
 
-        account_numbers = {balance.account_number for balance in balances}
-        for account_number in account_numbers:
+        account_ids = {balance.account_id for balance in balances}
+        for account_id in account_ids:
             depository_balances = [
                 balance.balance
                 for balance in balances
-                if balance.account_number == account_number
+                if balance.account_id == account_id
             ]
             if len(depository_balances) > 0:
                 balance_min = min(depository_balances)

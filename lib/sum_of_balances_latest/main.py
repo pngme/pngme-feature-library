@@ -57,7 +57,7 @@ async def get_sum_of_balances_latest(
     balances_df = pd.DataFrame(record_list)
     # sort df desc so we can take the top values as latest ts within each group
     balances_df.sort_values(by=['ts'], ascending=False, inplace=True)
-    sum_of_balances_latest = balances_df.groupby(["institution_id", "account_number"]).head(1)["balance"].sum()
+    sum_of_balances_latest = balances_df.groupby(["institution_id", "account_id"]).head(1)["balance"].sum()
     return sum_of_balances_latest
 
 
