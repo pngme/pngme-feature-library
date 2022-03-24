@@ -1,2 +1,2 @@
 pandas
-pngme-api
+pngme-api >= 0.5.0
