@@ -27,6 +27,12 @@ def get_average_end_of_day_balance(
         the average end-of-day total balance for a given time window
     """
     institutions = client.institutions.get(user_uuid)
+
+    # subset to only fetch data for institutions known to contain depository-type accounts for the user
+    institutions_w_depository = [
+        inst for inst in institutions if "depository" in inst.account_types
+    ]
+
     balance_df_list = []
 
     # Construct timerange since beginning of time
@@ -35,25 +41,25 @@ def get_average_end_of_day_balance(
     all_pages_utc_endtime = datetime(today.year, today.month, today.day)
     all_pages_starttime = all_pages_utc_endtime - timedelta(days=1e5)
 
-    for institution in institutions:
+    for institution in institutions_w_depository:
         institution_id = institution.institution_id
-        institution_balance_records = client.balances.get(
+        institution_depository_balance_records = client.balances.get(
             user_uuid=user_uuid,
             institution_id=institution_id,
             utc_starttime=all_pages_starttime,
             utc_endtime=all_pages_utc_endtime,
+            account_types=["depository"],
         )
-        depository_records = []
-        for balance_record in institution_balance_records:
-            if balance_record.account_type == "depository":
-                balance_record_dict = balance_record.dict()
-                depository_records.append(
-                    {
-                        key: balance_record_dict[key]
-                        for key in ["account_number", "ts", "balance"]
-                    }
-                )
-        institution_balances_df = pd.DataFrame(depository_records)
+        depository_balance_records = []
+        for balance_record in institution_depository_balance_records:
+            balance_record_dict = balance_record.dict()
+            depository_balance_records.append(
+                {
+                    key: balance_record_dict[key]
+                    for key in ["account_number", "ts", "balance"]
+                }
+            )
+        institution_balances_df = pd.DataFrame(depository_balance_records)
         institution_balances_df = institution_balances_df.assign(
             institution_name=institution_id
         )

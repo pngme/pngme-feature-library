@@ -27,13 +27,20 @@ def get_sum_of_minimum_balances(
     observed_balance = False  # Whether observed any depository account balance
 
     institutions = api_client.institutions.get(user_uuid)
-    for institution in institutions:
+
+    # subset to only fetch data for institutions known to contain depository-type accounts for the user
+    institutions_w_depository = [
+        inst for inst in institutions if "depository" in inst.account_types
+    ]
+
+    for institution in institutions_w_depository:
         institution_id = institution.institution_id
         balances = api_client.balances.get(
             user_uuid,
             institution_id,
             utc_starttime=utc_starttime,
             utc_endtime=utc_endtime,
+            account_types=["depository"],
         )
 
         account_numbers = {balance.account_number for balance in balances}
@@ -41,8 +48,7 @@ def get_sum_of_minimum_balances(
             depository_balances = [
                 balance.balance
                 for balance in balances
-                if balance.account_type == "depository"
-                and balance.account_number == account_number
+                if balance.account_number == account_number
             ]
             if len(depository_balances) > 0:
                 balance_min = min(depository_balances)
