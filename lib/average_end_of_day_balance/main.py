@@ -56,7 +56,7 @@ def get_average_end_of_day_balance(
             depository_balance_records.append(
                 {
                     key: balance_record_dict[key]
-                    for key in ["account_number", "ts", "balance"]
+                    for key in ["account_id", "ts", "balance"]
                 }
             )
         institution_balances_df = pd.DataFrame(depository_balance_records)
@@ -79,14 +79,14 @@ def get_average_end_of_day_balance(
     # If an account changes balances three times a day in sequence, i.e. $100, $20, $120),
     # take the last one ($120)
     eod_balances = (
-        balances_df.groupby(["yyyymmdd", "account_number", "institution_name"])
+        balances_df.groupby(["yyyymmdd", "account_id", "institution_name"])
         .tail(1)
         .set_index("yyyymmdd")
     )
 
     # 4. First Forward fill missing days
     ffilled_balances = (
-        eod_balances.groupby(["institution_name", "account_number"])["balance"]
+        eod_balances.groupby(["institution_name", "account_id"])["balance"]
         .resample("1D", kind="timestamp")
         .ffill()
         .reset_index()
@@ -99,7 +99,7 @@ def get_average_end_of_day_balance(
 
     # 6. Average all balances and calculate a global sum
     avg_daily_balance = float(
-        ffilled_balances_in_time_window.groupby(["institution_name", "account_number"])
+        ffilled_balances_in_time_window.groupby(["institution_name", "account_id"])
         .mean()
         .sum()
     )
