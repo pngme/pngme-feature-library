@@ -1,4 +1,4 @@
-# Sum of balances (latest)
+# Sum of depository balances (latest)
 
 1. Create and activate a virtual environment:
 
