@@ -1,4 +1,4 @@
-# Sum of depository balances (latest)
+# Average of loan balances
 
 1. Create and activate a virtual environment:
 
