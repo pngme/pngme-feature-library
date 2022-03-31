@@ -1,4 +1,4 @@
-# Sum of loan repayments
+# Sum of loan balances (latest)
 
 1. Create and activate a virtual environment:
 

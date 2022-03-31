@@ -7,15 +7,15 @@ import pandas as pd  # type: ignore
 from pngme.api import AsyncClient
 
 
-async def get_sum_of_balances_latest(
+async def get_sum_of_loan_balances_latest(
     api_client: AsyncClient,
     user_uuid: str,
     utc_time: datetime,
     cutoff_interval: timedelta = timedelta(days=90),
 ) -> float:
-    """Return the latest balance summed across all accounts.
+    """Return the latest balance summed across all loan accounts.
 
-    If an account does not contain any balance notifications within the time window,
+    If a loan account does not contain any balance notifications within the time window,
     it is considered stale and not included in the total balance.
 
     Args:
@@ -25,14 +25,14 @@ async def get_sum_of_balances_latest(
         cutoff_interval: if balance hasn't been updated within this interval, then balance record is stale, and method returns 0
 
     Returns:
-        The latest balance summed across all accounts
+        The latest balance summed across all loan accounts
     """
 
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
     utc_starttime = utc_time - cutoff_interval
 
-    # subset to only fetch data for institutions known to contain depository-type accounts for the user
-    institutions_w_depository = [inst for inst in institutions if "depository" in inst.account_types]
+    # subset to only fetch data for institutions known to contain loan-type accounts for the user
+    institutions_w_loan = [inst for inst in institutions if "loan" in inst.account_types]
 
     inst_coroutines = [
         api_client.balances.get(
@@ -40,9 +40,9 @@ async def get_sum_of_balances_latest(
             institution_id=institution.institution_id,
             utc_starttime=utc_starttime,
             utc_endtime=utc_time,
-            account_types=["depository"],
+            account_types=["loan"],
         )
-        for institution in institutions_w_depository
+        for institution in institutions_w_loan
     ]
 
     r = await asyncio.gather(*inst_coroutines)
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     now = datetime(2021, 10, 31)
 
     async def main():
-        sum_of_balances_latest = await get_sum_of_balances_latest(
+        sum_of_balances_latest = await get_sum_of_loan_balances_latest(
             client, user_uuid, now
         )
         print(sum_of_balances_latest)
