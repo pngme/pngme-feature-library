@@ -1,80 +1,119 @@
 #!/usr/bin/env python3
 
+import asyncio
 import os
 from datetime import datetime, timedelta
-from typing import Optional
-
 import pandas as pd  # type: ignore
-from pngme.api import Client
+from typing import Tuple
+from pngme.api import AsyncClient
 
 
-def get_debt_to_income_ratio_latest(
-    api_client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
-) -> Optional[float]:
-    """Compute the debt to income ratio over a period
+async def get_debt_to_income_ratio_latest(
+    api_client: AsyncClient,
+    user_uuid: str,
+    utc_time: datetime,
+    cutoff_interval: timedelta = timedelta(days=30),
+) -> float:
+    """Compute the debt to income ratio over a given period
 
-    Debt: Sum of open, late_payment and default tradeline balance
-    Income: Sum credit transactions across all depository accounts in a given period.
+    Debt: Sum of loan balances across all loan accounts over a given period
+    Income: Sum credit transactions across all depository accounts over a given period.
 
     Args:
-        api_client: Pngme API client
+        api_client: Pngme Async API client
         user_uuid: Pngme mobile phone user_uuid
-        utc_starttime: the datetime for the left-hand-side of the time-window
-        utc_endtime: the datetime for the right-hand-side of the time-window
+        utc_time: the time at which the latest debt_to_income ratio is computed
+        cutoff_interval: if balance hasn't been updated within this interval, then balance record is stale, and method returns 0
 
     Returns:
-        Ratio of debt / income, or None if a credit report cannot be generated for
-        the given user. Returning 0 would correspond to a 0 debt amount, and Inf
-        would correspond to a 0 income amount.
+        Ratio of debt / income for the given user. Returning 0 would correspond to a 0 debt amount,
+        and Inf would correspond to a 0 income amount.
     """
 
-    credit_report = api_client.credit_report.get(user_uuid)
+    institutions = await api_client.institutions.get(user_uuid=user_uuid)
+    utc_starttime = utc_time - cutoff_interval
 
-    if not credit_report:
-        return None
-
-    # Sum the values of all open, late_payment and default tradelines as debt proxy.
-    tradelines = [
-        *credit_report["tradelines"]["open"],
-        *credit_report["tradelines"]["late_payments"],
-        *credit_report["tradelines"]["default"],
+    # subset to only fetch data for institutions known to contain loan-type accounts for the user
+    institutions_w_loan = [
+        inst for inst in institutions if "loan" in inst.account_types
     ]
 
-    debt_amount = 0
-    for tradeline in tradelines:
-        if (
-            tradeline["amount"]
-            and utc_starttime < datetime.fromisoformat(tradeline["date"]) <= utc_endtime
-        ):
-            debt_amount += tradeline["amount"]
-
-    if debt_amount == 0:
-        return 0
-
-    # Sum of credit transactions across all depository accounts in a given period as proxy as income
-    institutions = api_client.institutions.get(user_uuid=user_uuid)
-    credit_record_list = []
-    for institution in institutions:
-        transactions = api_client.transactions.get(
+    loan_inst_coroutines = [
+        api_client.balances.get(
             user_uuid=user_uuid,
             institution_id=institution.institution_id,
             utc_starttime=utc_starttime,
-            utc_endtime=utc_endtime,
+            utc_endtime=utc_time,
+            account_types=["loan"],
         )
-        credit_record_list.extend([dict(transaction) for transaction in transactions])
+        for institution in institutions_w_loan
+    ]
+
+    # subset to only fetch data for institutions known to contain depository-type accounts for the user
+    institutions_w_depository = [
+        inst for inst in institutions if "depository" in inst.account_types
+    ]
+
+    depository_inst_coroutines = [
+        api_client.transactions.get(
+            user_uuid=user_uuid,
+            institution_id=institution.institution_id,
+            utc_starttime=utc_starttime,
+            utc_endtime=utc_time,
+            account_types=["depository"],
+        )
+        for institution in institutions_w_depository
+    ]
+
+    balances_resp = await asyncio.gather(*loan_inst_coroutines)
+    transactions_resp = await asyncio.gather(*depository_inst_coroutines)
+
+    loan_records_list = []
+    depository_credit_records_list = []
+
+    for ix, inst_list in enumerate(balances_resp):
+        institution_id = institutions[ix].institution_id
+        loan_records_list.extend(
+            [
+                dict(transaction, institution_id=institution_id)
+                for transaction in inst_list
+            ]
+        )
+
+    for inst_lst in transactions_resp:
+        depository_credit_records_list.extend(
+            [
+                dict(transaction)
+                for transaction in inst_lst
+                if transaction.impact == "CREDIT"
+            ]
+        )
+
+    # if no data available for the user, assume sum of loan balances to be zero
+    if len(loan_records_list) == 0:
+        return 0.0
 
     # if no data available for the user, assume cash-in is zero
-    if len(credit_record_list) == 0:
+    if len(depository_credit_records_list) == 0:
         return float("inf")
 
-    credit_df = pd.DataFrame(credit_record_list)
+    # Sum of balances across all loan accounts
+    loan_records_df = pd.DataFrame(loan_records_list)
 
-    credit_amount = credit_df[
-        (credit_df.impact == "CREDIT") & (credit_df.account_type == "depository")
-    ].amount.sum()
+    # sort df desc so we can take the top values as latest ts within each group
+    loan_records_df.sort_values(by=["ts"], ascending=False, inplace=True)
+    sum_of_loan_balances_latest = (
+        loan_records_df.groupby(["institution_id", "account_id"])
+        .head(1)["balance"]
+        .sum()
+    )
+
+    # Sum of credit transactions across all depository accounts
+    depository_credit_records_df = pd.DataFrame(depository_credit_records_list)
+    sum_of_depository_credit_transactions = depository_credit_records_df.amount.sum()
 
     # Compute debt to income ratio
-    ratio = debt_amount / credit_amount
+    ratio = sum_of_loan_balances_latest / sum_of_depository_credit_transactions
     return ratio
 
 
@@ -83,17 +122,17 @@ if __name__ == "__main__":
     user_uuid = "2ea8bbca-6e33-4d3f-9622-2e324045c272"
 
     token = os.environ["PNGME_TOKEN"]
-    client = Client(token)
+    client = AsyncClient(token)
 
     now = datetime(2021, 9, 1)
-    now_less_30 = now - timedelta(days=30)
 
-    # May refactor the helper function that not to take start and end time as arguments
-    debt_to_income_ratio_latest = get_debt_to_income_ratio_latest(
-        api_client=client,
-        user_uuid=user_uuid,
-        utc_starttime=now_less_30,
-        utc_endtime=now,
-    )
+    async def main():
+        debt_to_income_ratio_latest = await get_debt_to_income_ratio_latest(
+            api_client=client,
+            user_uuid=user_uuid,
+            utc_time=now,
+        )
 
-    print(debt_to_income_ratio_latest)
+        print(debt_to_income_ratio_latest)
+
+    asyncio.run(main())
