@@ -65,13 +65,14 @@ async def get_debt_to_income_ratio_latest(
         for institution in institutions_w_depository
     ]
 
-    balances_resp = await asyncio.gather(*loan_inst_coroutines)
-    transactions_resp = await asyncio.gather(*depository_inst_coroutines)
+    response = await asyncio.gather(*loan_inst_coroutines, *depository_inst_coroutines)
+    loan_balances = response[: len(loan_inst_coroutines)]
+    depository_transactions = response[len(loan_inst_coroutines) :]
 
     loan_records_list = []
     depository_credit_records_list = []
 
-    for ix, inst_list in enumerate(balances_resp):
+    for ix, inst_list in enumerate(loan_balances):
         institution_id = institutions[ix].institution_id
         loan_records_list.extend(
             [
@@ -80,7 +81,7 @@ async def get_debt_to_income_ratio_latest(
             ]
         )
 
-    for inst_lst in transactions_resp:
+    for inst_lst in depository_transactions:
         depository_credit_records_list.extend(
             [
                 dict(transaction)
