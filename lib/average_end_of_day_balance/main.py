@@ -68,8 +68,9 @@ async def get_average_end_of_day_balance(
         balance_df_list.append(institution_balances_df)
 
     # 1. Combine all institution balances into single dataframe
-    balances_df = pd.concat(balance_df_list)
-    if balances_df.empty:
+    if balance_df_list:
+        balances_df = pd.concat(balance_df_list)
+    else:
         return (None, None, None)
 
     # 2. Sort and create a column for day, filter by time window
