@@ -1,16 +1,19 @@
 #!/usr/bin/env python3
 
+import asyncio
 import os
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Tuple
 
 import pandas as pd
-from pngme.api import Client
+from pngme.api import AsyncClient
 
 
-def get_average_end_of_day_balance(
-    client: Client, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
-) -> Optional[float]:
+async def get_average_end_of_day_balance(
+    api_client: AsyncClient,
+    user_uuid: str,
+    utc_time: datetime,
+) -> Tuple[Optional[float]]:
     """Calculates the average end-of-day total balance for a user across all
        of their accounts for a given time window.
 
@@ -18,15 +21,14 @@ def get_average_end_of_day_balance(
        If no balance data was found, return None.
 
     Args:
-        client: Pngme API client
+        api_client: Pngme Async API client
         user_uuid: the Pngme user_uuid for the mobile phone user
-        utc_starttime: the datetime for the left-hand-side of the time-window
-        utc_endtime: the datetime for the right-hand-side of the time-window
+        utc_time: the time-zero to use in constructing the 0-30, 31-60 and 61-90 windows
 
     Returns:
         the average end-of-day total balance for a given time window
     """
-    institutions = client.institutions.get(user_uuid)
+    institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
     # subset to only fetch data for institutions known to contain depository-type accounts for the user
     institutions_w_depository = [
@@ -41,34 +43,34 @@ def get_average_end_of_day_balance(
     all_pages_utc_endtime = datetime(today.year, today.month, today.day)
     all_pages_starttime = all_pages_utc_endtime - timedelta(days=1e5)
 
-    for institution in institutions_w_depository:
-        institution_id = institution.institution_id
-        institution_depository_balance_records = client.balances.get(
+    inst_coroutines = [
+        api_client.balances.get(
             user_uuid=user_uuid,
-            institution_id=institution_id,
+            institution_id=institution.institution_id,
             utc_starttime=all_pages_starttime,
             utc_endtime=all_pages_utc_endtime,
             account_types=["depository"],
         )
+        for institution in institutions_w_depository
+    ]
+    r = await asyncio.gather(*inst_coroutines)
+    for index, inst_list in enumerate(r):
         depository_balance_records = []
-        for balance_record in institution_depository_balance_records:
-            balance_record_dict = balance_record.dict()
+        for bal_rec in inst_list:
+            balance_rec_dict = bal_rec.dict()
             depository_balance_records.append(
-                {
-                    key: balance_record_dict[key]
-                    for key in ["account_id", "ts", "balance"]
-                }
+                {key: balance_rec_dict[key] for key in ["account_id", "ts", "balance"]}
             )
         institution_balances_df = pd.DataFrame(depository_balance_records)
         institution_balances_df = institution_balances_df.assign(
-            institution_name=institution_id
+            institution_name=institutions_w_depository[index].institution_id
         )
         balance_df_list.append(institution_balances_df)
 
     # 1. Combine all institution balances into single dataframe
     balances_df = pd.concat(balance_df_list)
     if balances_df.empty:
-        return None
+        return (None, None, None)
 
     # 2. Sort and create a column for day, filter by time window
     balances_df = balances_df.sort_values("ts")
@@ -92,19 +94,48 @@ def get_average_end_of_day_balance(
         .reset_index()
     )
 
-    # 5. Filter time window
-    ffilled_balances_in_time_window = ffilled_balances[
-        ffilled_balances["yyyymmdd"].between(utc_starttime, utc_endtime)
+    # 5. Filter time window for 0-30d, 31-60d ad 61-90d
+    # Create time windows for 30d, 60d and 90d
+    utc_time_less_30 = utc_time - timedelta(days=30)
+    utc_time_less_60 = utc_time - timedelta(days=60)
+    utc_time_less_90 = utc_time - timedelta(days=90)
+
+    ffilled_balances_in_time_window_0_30 = ffilled_balances[
+        ffilled_balances["yyyymmdd"].between(utc_time_less_30, utc_time)
+    ]
+    ffilled_balances_in_time_window_31_60 = ffilled_balances[
+        ffilled_balances["yyyymmdd"].between(
+            utc_time_less_60, utc_time_less_30, "right"
+        )
+    ]
+    ffilled_balances_in_time_window_61_90 = ffilled_balances[
+        ffilled_balances["yyyymmdd"].between(
+            utc_time_less_90, utc_time_less_60, "right"
+        )
     ]
 
     # 6. Average all balances and calculate a global sum
-    avg_daily_balance = float(
-        ffilled_balances_in_time_window.groupby(["institution_name", "account_id"])
+    avg_daily_balance_0_30 = float(
+        ffilled_balances_in_time_window_0_30.groupby(["institution_name", "account_id"])
+        .mean()
+        .sum()
+    )
+    avg_daily_balance_31_60 = float(
+        ffilled_balances_in_time_window_31_60.groupby(
+            ["institution_name", "account_id"]
+        )
+        .mean()
+        .sum()
+    )
+    avg_daily_balance_61_90 = float(
+        ffilled_balances_in_time_window_61_90.groupby(
+            ["institution_name", "account_id"]
+        )
         .mean()
         .sum()
     )
 
-    return avg_daily_balance
+    return (avg_daily_balance_0_30, avg_daily_balance_31_60, avg_daily_balance_61_90)
 
 
 if __name__ == "__main__":
@@ -112,25 +143,21 @@ if __name__ == "__main__":
     user_uuid = "958a5ae8-f3a3-41d5-ae48-177fdc19e3f4"
     token = os.environ["PNGME_TOKEN"]
 
-    client = Client(token)
+    client = AsyncClient(token)
 
     now = datetime(2021, 10, 1)
-    now_less_30 = now - timedelta(days=30)
-    now_less_60 = now - timedelta(days=60)
-    now_less_90 = now - timedelta(days=90)
 
-    average_end_of_day_balance_0_30 = get_average_end_of_day_balance(
-        client, user_uuid=user_uuid, utc_starttime=now_less_30, utc_endtime=now
-    )
+    async def main():
+        (
+            average_end_of_day_balance_0_30,
+            average_end_of_day_balance_31_60,
+            average_end_of_day_balance_61_90,
+        ) = await get_average_end_of_day_balance(
+            api_client=client, user_uuid=user_uuid, utc_time=now
+        )
 
-    average_end_of_day_balance_31_60 = get_average_end_of_day_balance(
-        client, user_uuid=user_uuid, utc_starttime=now_less_60, utc_endtime=now_less_30
-    )
+        print(average_end_of_day_balance_0_30)
+        print(average_end_of_day_balance_31_60)
+        print(average_end_of_day_balance_61_90)
 
-    average_end_of_day_balance_61_90 = get_average_end_of_day_balance(
-        client, user_uuid=user_uuid, utc_starttime=now_less_90, utc_endtime=now_less_60
-    )
-
-    print(average_end_of_day_balance_0_30)
-    print(average_end_of_day_balance_31_60)
-    print(average_end_of_day_balance_61_90)
+    asyncio.run(main())
