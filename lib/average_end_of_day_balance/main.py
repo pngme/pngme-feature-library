@@ -13,7 +13,7 @@ async def get_average_end_of_day_balance(
     api_client: AsyncClient,
     user_uuid: str,
     utc_time: datetime,
-) -> Tuple[Optional[float]]:
+) -> Tuple[Optional[float], Optional[float], Optional[float]]:
     """Calculates the average end-of-day total balance for a user across all
        of their accounts for a given time window.
 
@@ -26,7 +26,7 @@ async def get_average_end_of_day_balance(
         utc_time: the time-zero to use in constructing the 0-30, 31-60 and 61-90 windows
 
     Returns:
-        the average end-of-day total balance for a given time window
+        the average end-of-day total balance over each window
     """
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
@@ -54,24 +54,15 @@ async def get_average_end_of_day_balance(
         for institution in institutions_w_depository
     ]
     r = await asyncio.gather(*inst_coroutines)
-    for index, inst_list in enumerate(r):
-        depository_balance_records = []
-        for bal_rec in inst_list:
-            balance_rec_dict = bal_rec.dict()
-            depository_balance_records.append(
-                {key: balance_rec_dict[key] for key in ["account_id", "ts", "balance"]}
-            )
-        institution_balances_df = pd.DataFrame(depository_balance_records)
-        institution_balances_df = institution_balances_df.assign(
-            institution_name=institutions_w_depository[index].institution_id
-        )
-        balance_df_list.append(institution_balances_df)
+    record_list = []
+    for ix, inst_list in enumerate(r):
+        institution_id = institutions[ix].institution_id
+        record_list.extend([dict(transaction, institution_id=institution_id) for transaction in inst_list])
+    # consider the sum of balances to be zero, if no data is present
+    if len(record_list) == 0:
+        return None, None, None
 
-    # 1. Combine all institution balances into single dataframe
-    if balance_df_list:
-        balances_df = pd.concat(balance_df_list)
-    else:
-        return (None, None, None)
+    balances_df = pd.DataFrame(record_list)
 
     # 2. Sort and create a column for day, filter by time window
     balances_df = balances_df.sort_values("ts")
