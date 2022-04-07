@@ -73,14 +73,14 @@ async def get_average_end_of_day_balance(
     # If an account changes balances three times a day in sequence, i.e. $100, $20, $120),
     # take the last one ($120)
     eod_balances = (
-        balances_df.groupby(["yyyymmdd", "account_id", "institution_name"])
+        balances_df.groupby(["yyyymmdd", "account_id", "institution_id"])
         .tail(1)
         .set_index("yyyymmdd")
     )
 
     # 4. First Forward fill missing days
     ffilled_balances = (
-        eod_balances.groupby(["institution_name", "account_id"])["balance"]
+        eod_balances.groupby(["institution_id", "account_id"])["balance"]
         .resample("1D", kind="timestamp")
         .ffill()
         .reset_index()
@@ -108,20 +108,20 @@ async def get_average_end_of_day_balance(
 
     # 6. Average all balances and calculate a global sum
     avg_daily_balance_0_30 = float(
-        ffilled_balances_in_time_window_0_30.groupby(["institution_name", "account_id"])
+        ffilled_balances_in_time_window_0_30.groupby(["institution_id", "account_id"])
         .mean()
         .sum()
     )
     avg_daily_balance_31_60 = float(
         ffilled_balances_in_time_window_31_60.groupby(
-            ["institution_name", "account_id"]
+            ["institution_id", "account_id"]
         )
         .mean()
         .sum()
     )
     avg_daily_balance_61_90 = float(
         ffilled_balances_in_time_window_61_90.groupby(
-            ["institution_name", "account_id"]
+            ["institution_id", "account_id"]
         )
         .mean()
         .sum()
