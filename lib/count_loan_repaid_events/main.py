@@ -4,14 +4,16 @@ import os
 from datetime import datetime, timedelta
 
 import pandas as pd  # type: ignore
-from typing import Tuple
 
 from pngme.api import AsyncClient
 
 
 async def get_count_loan_repaid_events(
-    api_client: AsyncClient, user_uuid: str, utc_time: datetime
-) -> Tuple[int, int, int]:
+    api_client: AsyncClient,
+    user_uuid: str,
+    utc_starttime: datetime,
+    utc_endtime: datetime,
+) -> int:
     """
     Count events labeled with LoanRepaid across all institutions
     over the following date ranges: last 30 days, 31-60 days and 61-90 days.
@@ -19,23 +21,21 @@ async def get_count_loan_repaid_events(
     Args:
         api_client: Pngme Async API client
         user_uuid: the Pngme user_uuid for the mobile phone user
-        utc_time: the time-zero to use in constructing the 0-30, 31-60 and 61-90 windows
+        utc_starttime: the UTC time to start the time window
+        utc_endtime: the UTC time to end the time window
 
     Returns:
         count of LoanRepaid events within the given time window
     """
-    label = "LoanRepaid"
-
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
-    utc_starttime = utc_time - timedelta(days=90)
     inst_coroutines = [
         api_client.alerts.get(
             user_uuid=user_uuid,
             institution_id=institution.institution_id,
             utc_starttime=utc_starttime,
-            utc_endtime=utc_time,
-            labels=[label],
+            utc_endtime=utc_endtime,
+            labels=["LoanRepaid"],
         )
         for institution in institutions
     ]
@@ -48,27 +48,16 @@ async def get_count_loan_repaid_events(
 
     # if no data available for the user, assume count of LoanRepaid event is zero
     if len(record_list) == 0:
-        return 0, 0, 0
+        return 0
 
     record_df = pd.DataFrame(record_list)
 
-    ts_30 = (utc_time - timedelta(days=30)).timestamp()
-    ts_60 = (utc_time - timedelta(days=60)).timestamp()
-    ts_90 = (utc_time - timedelta(days=90)).timestamp()
-
-    filter_0_30 = record_df.ts >= ts_30
-    filter_31_60 = (record_df.ts >= ts_60) & (record_df.ts < ts_30)
-    filter_61_90 = (record_df.ts >= ts_90) & (record_df.ts < ts_60)
-
-    count_loan_repaid_events_0_30 = len(record_df[filter_0_30])
-    count_loan_repaid_events_31_60 = len(record_df[filter_31_60])
-    count_loan_repaid_events_61_90 = len(record_df[filter_61_90])
-
-    return (
-        count_loan_repaid_events_0_30,
-        count_loan_repaid_events_31_60,
-        count_loan_repaid_events_61_90,
+    time_window_filter = (record_df.ts >= utc_starttime.timestamp()) & (
+        record_df.ts < utc_endtime.timestamp()
     )
+    count_loan_repaid_events = len(record_df[time_window_filter])
+
+    return count_loan_repaid_events
 
 
 if __name__ == "__main__":
@@ -78,17 +67,17 @@ if __name__ == "__main__":
     token = os.environ["PNGME_TOKEN"]
     client = AsyncClient(token)
 
-    now = datetime(2021, 11, 1)
+    utc_endtime = datetime(2021, 10, 1)
+    utc_starttime = utc_endtime - timedelta(days=30)
 
     async def main():
-        (
-            count_loan_repaid_events_0_30,
-            count_loan_repaid_events_31_60,
-            count_loan_repaid_events_61_90,
-        ) = await get_count_loan_repaid_events(client, user_uuid, now)
+        count_loan_repaid_events = await get_count_loan_repaid_events(
+            client,
+            user_uuid,
+            utc_starttime,
+            utc_endtime,
+        )
 
-        print(count_loan_repaid_events_0_30)
-        print(count_loan_repaid_events_31_60)
-        print(count_loan_repaid_events_61_90)
+        print(count_loan_repaid_events)
 
     asyncio.run(main())

@@ -12,8 +12,8 @@ from pngme.api import AsyncClient
 async def get_average_end_of_day_balance(
     api_client: AsyncClient,
     user_uuid: str,
-    utc_time_start: datetime,
-    utc_time_end: datetime,
+    utc_starttime: datetime,
+    utc_endtime: datetime,
 ) -> Optional[float]:
     """Calculates the average end-of-day total balance for a user across all
        of their accounts for a given time window.
@@ -23,8 +23,8 @@ async def get_average_end_of_day_balance(
     Args:
         api_client: Pngme Async API client
         user_uuid: the Pngme user_uuid for the mobile phone user
-        utc_time_start: the UTC time to start the time window
-        utc_time_end: the UTC time to end the time window
+        utc_starttime: the UTC time to start the time window
+        utc_endtime: the UTC time to end the time window
 
     Returns:
         the average end-of-day total balance over each window
@@ -92,7 +92,7 @@ async def get_average_end_of_day_balance(
 
     # 5. Filter time window for the provided period
     ffilled_balances_in_time_window = ffilled_balances[
-        ffilled_balances["yyyymmdd"].between(utc_time_start, utc_time_end)
+        ffilled_balances["yyyymmdd"].between(utc_starttime, utc_endtime)
     ]
 
     # 6. Average all balances and calculate a global sum
@@ -113,18 +113,18 @@ if __name__ == "__main__":
     client = AsyncClient(token)
 
     # Get the average end-of-day balance for the last 30 days
-    utc_time_end = datetime(2021, 10, 1)
-    utc_time_start = utc_time_end - timedelta(days=30)
+    utc_endtime = datetime(2021, 10, 1)
+    utc_starttime = utc_endtime - timedelta(days=30)
 
     async def main():
 
-        average_end_of_day_balance_0_30 = await get_average_end_of_day_balance(
+        average_end_of_day_balance = await get_average_end_of_day_balance(
             api_client=client,
             user_uuid=user_uuid,
-            utc_time_start=utc_time_start,
-            utc_time_end=utc_time_end,
+            utc_starttime=utc_starttime,
+            utc_endtime=utc_endtime,
         )
 
-        print(average_end_of_day_balance_0_30)
+        print(average_end_of_day_balance)
 
     asyncio.run(main())

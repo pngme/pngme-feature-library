@@ -8,7 +8,10 @@ from pngme.api import AsyncClient
 
 
 async def get_count_loan_defaulted_events(
-    api_client: AsyncClient, user_uuid: str, utc_time: datetime
+    api_client: AsyncClient,
+    user_uuid: str,
+    utc_starttime: datetime,
+    utc_endtime: datetime,
 ) -> Tuple[int, int, int]:
     """
     Count events labeled with LoanDefaulted across all institutions
@@ -17,7 +20,8 @@ async def get_count_loan_defaulted_events(
     Args:
         api_client: Pngme Async API client
         user_uuid: the Pngme user_uuid for the mobile phone user
-        utc_time: the time-zero to use in constructing the 0-30, 31-60 and 61-90 windows
+        utc_starttime: the UTC time to start the time window
+        utc_endtime: the UTC time to end the time window
 
     Returns:
         count of LoanDefaulted events within the given time window
@@ -29,16 +33,13 @@ async def get_count_loan_defaulted_events(
         inst for inst in institutions if "loan" in inst.account_types
     ]
 
-    # at most, we retrieve data from last 90 days
-    utc_starttime = utc_time - timedelta(days=90)
-    
     # API call including the label filter so only "LoanDefaulted" events are returned if they exist
     inst_coroutines = [
         api_client.alerts.get(
             user_uuid=user_uuid,
             institution_id=institution.institution_id,
             utc_starttime=utc_starttime,
-            utc_endtime=utc_time,
+            utc_endtime=utc_endtime,
             labels=["LoanDefaulted"],
         )
         for institution in institutions_w_loan
@@ -51,29 +52,14 @@ async def get_count_loan_defaulted_events(
     for inst_list in r:
         record_list.extend([dict(alert) for alert in inst_list])
 
-    # now we prepare the time windows for the counts
-    ts_30 = (utc_time - timedelta(days=30)).timestamp()
-    ts_60 = (utc_time - timedelta(days=60)).timestamp()
-    ts_90 = (utc_time - timedelta(days=90)).timestamp()
-
     # now we count the number of events in each time window
-    count_loan_defaulted_events_0_30 = 0
-    count_loan_defaulted_events_31_60 = 0
-    count_loan_defaulted_events_61_90 = 0
+    count_loan_defaulted_events = 0
 
     for r in record_list:
-        if r["ts"] >= ts_30:
-            count_loan_defaulted_events_0_30 += 1
-        if r["ts"] >= ts_60 and r["ts"] < ts_30:
-            count_loan_defaulted_events_31_60 += 1
-        if r["ts"] >= ts_90 and r["ts"] < ts_60:
-            count_loan_defaulted_events_61_90 += 1
-    
-    return (
-        count_loan_defaulted_events_0_30,
-        count_loan_defaulted_events_31_60,
-        count_loan_defaulted_events_61_90,
-    )
+        if r["ts"] >= utc_starttime.timestamp() and r["ts"] < utc_endtime.timestamp():
+            count_loan_defaulted_events += 1
+
+    return count_loan_defaulted_events
 
 
 if __name__ == "__main__":
@@ -84,17 +70,17 @@ if __name__ == "__main__":
     token = os.environ["PNGME_TOKEN"]
     client = AsyncClient(token)
 
-    now = datetime(2021, 12, 1)
+    utc_endtime = datetime(2021, 11, 1)
+    utc_starttime = utc_endtime - timedelta(days=30)
 
     async def main():
-        (
-            count_loan_defaulted_events_0_30,
-            count_loan_defaulted_events_31_60,
-            count_loan_defaulted_events_61_90,
-        ) = await get_count_loan_defaulted_events(client, user_uuid, now)
-        
-        print(count_loan_defaulted_events_0_30)
-        print(count_loan_defaulted_events_31_60)
-        print(count_loan_defaulted_events_61_90)
+        count_loan_defaulted_events = await get_count_loan_defaulted_events(
+            client,
+            user_uuid,
+            utc_starttime,
+            utc_endtime,
+        )
+
+        print(count_loan_defaulted_events)
 
     asyncio.run(main())

@@ -75,30 +75,14 @@ if __name__ == "__main__":
     token = os.environ["PNGME_TOKEN"]
     client = Client(access_token=token)
 
-    decision_time = datetime(2021, 10, 1)
-    decision_time_less_30 = decision_time - timedelta(days=30)
-    decision_time_less_60 = decision_time - timedelta(days=60)
-    decision_time_less_90 = decision_time - timedelta(days=90)
+    utc_endtime = datetime(2021, 10, 1)
+    utc_starttime = utc_endtime - timedelta(days=30)
 
     net_cash_flow_0_30 = get_net_cash_flow(
         api_client=client,
         user_uuid=user_uuid,
-        utc_starttime=decision_time_less_30,
-        utc_endtime=decision_time,
-    )
-    net_cash_flow_31_60 = get_net_cash_flow(
-        api_client=client,
-        user_uuid=user_uuid,
-        utc_starttime=decision_time_less_60,
-        utc_endtime=decision_time_less_30,
-    )
-    net_cash_flow_61_90 = get_net_cash_flow(
-        api_client=client,
-        user_uuid=user_uuid,
-        utc_starttime=decision_time_less_90,
-        utc_endtime=decision_time_less_60,
+        utc_starttime=utc_starttime,
+        utc_endtime=utc_endtime,
     )
 
     print(net_cash_flow_0_30)
-    print(net_cash_flow_31_60)
-    print(net_cash_flow_61_90)

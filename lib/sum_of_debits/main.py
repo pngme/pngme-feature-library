@@ -3,20 +3,24 @@
 import asyncio
 import os
 from datetime import datetime, timedelta
-from typing import Tuple
+from typing import Optional
 
 from pngme.api import AsyncClient
 
 
 async def get_sum_of_debits(
-    api_client: AsyncClient, user_uuid: str, utc_time: datetime
-) -> Tuple[float, float, float]:
-    """Sum debit transactions across all depository accounts in a given period.
+    api_client: AsyncClient,
+    user_uuid: str,
+    utc_starttime: datetime,
+    utc_time: datetime,
+) -> Optional[float]:
+    """
+    Sum debit transactions across all depository accounts in a given period.
 
     No currency conversions are performed.
 
     Date ranges are 30 days, 31-60 days and 61-90 days.
-    Sum of debits is calculated by totaling all debit transactions
+    Sum of debits is calculated by totaling debit transactions
     across all of a user's depository accounts during the given time period.
 
     Args:
@@ -31,11 +35,10 @@ async def get_sum_of_debits(
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
     # subset to only fetch data for institutions known to contain depository-type accounts for the user
-    institutions_w_depository = [inst for inst in institutions if "depository" in inst.account_types]
+    institutions_w_depository = [
+        inst for inst in institutions if "depository" in inst.account_types
+    ]
 
-    # at most, we retrieve data from last 90 days
-    utc_starttime = utc_time - timedelta(days=90)
-    
     # API call including the account type filter so only "depository" transactions are returned if they exist
     inst_coroutines = [
         api_client.transactions.get(
@@ -47,39 +50,31 @@ async def get_sum_of_debits(
         )
         for institution in institutions_w_depository
     ]
+
     r = await asyncio.gather(*inst_coroutines)
 
     # now we aggregate the results from each institution into a single list
     record_list = []
-    for inst_list in r:
-        record_list.extend([dict(transaction) for transaction in inst_list])
-
-    # Get the total outbound debit over a period
-    ts_30 = (utc_time - timedelta(days=30)).timestamp()
-    ts_60 = (utc_time - timedelta(days=60)).timestamp()
-    ts_90 = (utc_time - timedelta(days=90)).timestamp()
+    for inst_lst in r:
+        record_list.extend([dict(transaction) for transaction in inst_lst])
 
     # now we sum the transaction amounts in each time window
-    amount_0_30 = None
-    amount_31_60 = None
-    amount_61_90 = None
+    amount = None
 
     for r in record_list:
         if r["impact"] == "DEBIT":
-            if r["ts"] >= ts_30:
-                amount_0_30 = _update_total(r["amount"], amount_0_30)
-            elif r["ts"] >= ts_60:
-                amount_31_60 = _update_total(r["amount"], amount_31_60)
-            elif r["ts"] >= ts_90:
-                amount_61_90 = _update_total(r["amount"], amount_61_90)
+            if r["ts"] >= utc_starttime.timestamp() and r["ts"] < utc_endtime.timestamp():
+                amount = _update_total(r["amount"], amount)
 
-    return amount_0_30, amount_31_60, amount_61_90
+    return amount
+
 
 def _update_total(amount, total):
     if total is None:
         total = 0
     total += amount
     return total
+
 
 if __name__ == "__main__":
     # Mercy Otieno, mercy@pngme.demo.com, 254123456789
@@ -88,12 +83,16 @@ if __name__ == "__main__":
     token = os.environ["PNGME_TOKEN"]
     client = AsyncClient(token)
 
-    now = datetime(2021, 10, 1)
+    utc_endtime = datetime(2021, 10, 1)
+    utc_starttime = utc_endtime - timedelta(days=30)
 
     async def main():
-        soc_0_30, soc_31_60, soc_61_90 = await get_sum_of_debits(client, user_uuid, now)
+        soc_0_30 = await get_sum_of_debits(
+            client,
+            user_uuid,
+            utc_starttime,
+            utc_endtime,
+        )
         print(soc_0_30)
-        print(soc_31_60)
-        print(soc_61_90)
 
     asyncio.run(main())
