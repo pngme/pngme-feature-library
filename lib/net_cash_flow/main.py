@@ -51,11 +51,18 @@ def get_net_cash_flow(
         return None
 
     # Get the total cash-in (credit) amount over a period
-    cash_in_amount = sum([r["amount"] for r in record_list if r["impact"] == "CREDIT"])
+    cash_in_amount = 0
+    for r in record_list:
+        if r["impact"] == "CREDIT":
+            cash_in_amount += r["amount"]
 
     # Get the total cash-out (debit) amount over a period
-    cash_out_amount = sum([r["amount"] for r in record_list if r["impact"] == "DEBIT"])
+    cash_out_amount = 0
+    for r in record_list:
+        if r["impact"] == "DEBIT":
+            cash_out_amount += r["amount"]
 
+    # Compute the net cash flow as the difference between cash-in and cash-out
     total_net_cash_flow = cash_in_amount - cash_out_amount
 
     return total_net_cash_flow
