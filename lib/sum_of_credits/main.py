@@ -3,13 +3,14 @@
 import asyncio
 import os
 from datetime import datetime, timedelta
-import pandas as pd  # type: ignore
-from typing import Tuple
+from typing import Optional, Tuple
 
 from pngme.api import AsyncClient
 
 
-async def get_sum_of_credits(api_client: AsyncClient, user_uuid: str, utc_time: datetime) -> Tuple[float, float, float]:
+async def get_sum_of_credits(
+    api_client: AsyncClient, user_uuid: str, utc_time: datetime
+) -> Tuple[Optional[float], Optional[float], Optional[float]]:
     """
     Sum credit transactions across all depository accounts in a given period.
 
@@ -26,15 +27,17 @@ async def get_sum_of_credits(api_client: AsyncClient, user_uuid: str, utc_time: 
 
     Returns:
         the sum total of all credit transaction amounts over the predefined ranges.
+            If there are no credit transactions for a given period, returns None
     """
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
     # subset to only fetch data for institutions known to contain depository-type accounts for the user
     institutions_w_depository = [inst for inst in institutions if "depository" in inst.account_types]
 
-    # Constructs a dataframe that contains transactions from all institutions for the user
-    record_list = []
+    # at most, we retrieve data from last 90 days
     utc_starttime = utc_time - timedelta(days=90)
+
+    # API call including the account type filter so only "depository" transactions are returned if they exist
     inst_coroutines = [
         api_client.transactions.get(
             user_uuid=user_uuid,
@@ -45,30 +48,40 @@ async def get_sum_of_credits(api_client: AsyncClient, user_uuid: str, utc_time: 
         )
         for institution in institutions_w_depository
     ]
+    
     r = await asyncio.gather(*inst_coroutines)
+
+    # now we aggregate the results from each institution into a single list
+    record_list = []
     for inst_lst in r:
         record_list.extend([dict(transaction) for transaction in inst_lst])
 
-    # if no data available for the user, assume cash-in is zero
-    if len(record_list) == 0:
-        return 0.0, 0.0, 0.0
-
-    record_df = pd.DataFrame(record_list)
-
-    # Get the total inbound credit over a period
+    # now we prepare the time windows for the sums
     ts_30 = (utc_time - timedelta(days=30)).timestamp()
     ts_60 = (utc_time - timedelta(days=60)).timestamp()
     ts_90 = (utc_time - timedelta(days=90)).timestamp()
 
-    filter_0_30 = (record_df.impact == "CREDIT") & (record_df.ts >= ts_30)
-    filter_31_60 = (record_df.impact == "CREDIT") & (record_df.ts >= ts_60) & (record_df.ts < ts_30)
-    filter_61_90 = (record_df.impact == "CREDIT") & (record_df.ts >= ts_90) & (record_df.ts < ts_60)
+    # now we sum the transaction amounts in each time window
+    amount_0_30 = None
+    amount_31_60 = None
+    amount_61_90 = None
 
-    amount_0_30 = record_df[filter_0_30].amount.sum()
-    amount_31_60 = record_df[filter_31_60].amount.sum()
-    amount_61_90 = record_df[filter_61_90].amount.sum()
+    for r in record_list:
+        if r["impact"] == "CREDIT":
+            if r["ts"] >= ts_30:
+                amount_0_30 = _update_total(r["amount"], amount_0_30)
+            elif r["ts"] >= ts_60:
+                amount_31_60 = _update_total(r["amount"], amount_31_60)
+            elif r["ts"] >= ts_90:
+                amount_61_90 = _update_total(r["amount"], amount_61_90)
 
     return amount_0_30, amount_31_60, amount_61_90
+
+def _update_total(amount, total):
+    if total is None:
+        total = 0
+    total += amount
+    return total
 
 
 if __name__ == "__main__":

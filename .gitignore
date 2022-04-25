@@ -63,3 +63,6 @@ dmypy.json
 
 # IDE settings
 .idea
+
+# VS Code settings
+.vscode

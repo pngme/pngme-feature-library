@@ -4,7 +4,6 @@ import os
 from datetime import datetime, timedelta
 from typing import Optional
 
-import pandas as pd  # type: ignore
 from pngme.api import Client
 
 
@@ -51,15 +50,21 @@ def get_net_cash_flow(
     if len(record_list) == 0:
         return None
 
-    transaction_df = pd.DataFrame(record_list)
-
     # Get the total cash-in (credit) amount over a period
-    cash_in_amount = transaction_df[(transaction_df.impact == "CREDIT")].amount.sum()
+    cash_in_amount = 0
+    for r in record_list:
+        if r["impact"] == "CREDIT":
+            cash_in_amount += r["amount"]
 
     # Get the total cash-out (debit) amount over a period
-    cash_out_amount = transaction_df[(transaction_df.impact == "DEBIT")].amount.sum()
+    cash_out_amount = 0
+    for r in record_list:
+        if r["impact"] == "DEBIT":
+            cash_out_amount += r["amount"]
 
+    # Compute the net cash flow as the difference between cash-in and cash-out
     total_net_cash_flow = cash_in_amount - cash_out_amount
+
     return total_net_cash_flow
 
 
