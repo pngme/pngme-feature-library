@@ -16,7 +16,6 @@ async def get_count_loan_declined_events(
 ) -> int:
     """
     Count events labeled with LoanDeclined across all institutions
-    over the following date ranges: last 30 days, 31-60 days and 61-90 days.
 
     Args:
         api_client: Pngme Async API client

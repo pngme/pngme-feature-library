@@ -19,14 +19,14 @@ async def get_sum_of_debits(
 
     No currency conversions are performed.
 
-    Date ranges are 30 days, 31-60 days and 61-90 days.
     Sum of debits is calculated by totaling debit transactions
     across all of a user's depository accounts during the given time period.
 
     Args:
         api_client: Pngme Async API client
         user_uuid: the Pngme user_uuid for the mobile phone user
-        utc_time: the time-zero to use in constructing the 0-30, 31-60 and 61-90 windows
+        utc_starttime: the UTC time to start the time window
+        utc_endtime: the UTC time to end the time window
 
     Returns:
         the sum total of all debit transaction amounts over the predefined ranges.
@@ -87,12 +87,12 @@ if __name__ == "__main__":
     utc_starttime = utc_endtime - timedelta(days=30)
 
     async def main():
-        soc_0_30 = await get_sum_of_debits(
+        soc = await get_sum_of_debits(
             client,
             user_uuid,
             utc_starttime,
             utc_endtime,
         )
-        print(soc_0_30)
+        print(soc)
 
     asyncio.run(main())

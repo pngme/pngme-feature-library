@@ -17,7 +17,6 @@ async def get_average_of_loan_balances(
     utc_endtime: datetime,
 ) -> Optional[float]:
     """Return the average of balances across all loan accounts
-    over the following date ranges: 30 days, 31-60 days and 61-90 days from the given utc_time.
 
     If a loan account does not contain any balance notifications within the time window,
     it is considered stale and not included in the total balance.

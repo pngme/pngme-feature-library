@@ -17,7 +17,6 @@ async def get_count_betting_and_lottery_events(
 ) -> int:
     """
     Count events labeled with BettingAndLottery across all institutions
-    over the following date ranges: last 30 days, 31-60 days and 61-90 days.
 
     Args:
         api_client: Pngme Async API client
@@ -69,7 +68,7 @@ if __name__ == "__main__":
     client = AsyncClient(token)
 
     utc_endtime = datetime(2021, 10, 1)
-    utc_starttime = utc_endtime - timedelta(days=90)
+    utc_starttime = utc_endtime - timedelta(days=30)
 
     async def main():
 

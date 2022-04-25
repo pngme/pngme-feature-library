@@ -12,10 +12,9 @@ def get_net_cash_flow(
 ) -> Optional[float]:
     """Compute the net cash flow for a user over a given period.
 
-    No currency conversions are performed. Typical date ranges are last 30 days, 31-60
-    days and 61-90 days. Net cash flow is calculated by differencing cash-in (credit)
-    and cash-out (debit) transactions across all of a user's depository accounts during
-    the given period.
+    No currency conversions are performed. Net cash flow is calculated by
+    differencing cash-in (credit) and cash-out (debit) transactions across
+    all of a user's depository accounts during the given period.
 
     Args:
         api_client: Pngme API client
@@ -78,11 +77,11 @@ if __name__ == "__main__":
     utc_endtime = datetime(2021, 10, 1)
     utc_starttime = utc_endtime - timedelta(days=30)
 
-    net_cash_flow_0_30 = get_net_cash_flow(
+    net_cash_flow = get_net_cash_flow(
         api_client=client,
         user_uuid=user_uuid,
         utc_starttime=utc_starttime,
         utc_endtime=utc_endtime,
     )
 
-    print(net_cash_flow_0_30)
+    print(net_cash_flow)

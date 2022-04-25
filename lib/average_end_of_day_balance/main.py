@@ -112,7 +112,6 @@ if __name__ == "__main__":
 
     client = AsyncClient(token)
 
-    # Get the average end-of-day balance for the last 30 days
     utc_endtime = datetime(2021, 10, 1)
     utc_starttime = utc_endtime - timedelta(days=30)
 
