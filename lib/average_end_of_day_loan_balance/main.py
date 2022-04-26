@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-
 import asyncio
 import os
+
 from datetime import datetime, timedelta
 from typing import Optional
 
-import pandas as pd
+import pandas as pd  # type: ignore
+
 from pngme.api import AsyncClient
 
 
@@ -29,11 +30,12 @@ async def get_average_end_of_day_balance(
     Returns:
         the average end-of-day total balance over each window
     """
+
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
-    # subset to only fetch data for institutions known to contain depository-type accounts for the user
-    institutions_w_depository = [
-        inst for inst in institutions if "depository" in inst.account_types
+    # subset to only fetch data for institutions known to contain loan-type accounts for the user
+    institutions_w_loan = [
+        inst for inst in institutions if "loan" in inst.account_types
     ]
 
     # Construct timerange since beginning of time
@@ -48,11 +50,12 @@ async def get_average_end_of_day_balance(
             institution_id=institution.institution_id,
             utc_starttime=all_pages_starttime,
             utc_endtime=all_pages_utc_endtime,
-            account_types=["depository"],
+            account_types=["loan"],
         )
-        for institution in institutions_w_depository
+        for institution in institutions_w_loan
     ]
     r = await asyncio.gather(*inst_coroutines)
+
     record_list = []
     for ix, inst_list in enumerate(r):
         institution_id = institutions[ix].institution_id
@@ -108,8 +111,8 @@ async def get_average_end_of_day_balance(
 if __name__ == "__main__":
     # Mercy Otingo, mercy@pngme.demo, 234112312
     user_uuid = "958a5ae8-f3a3-41d5-ae48-177fdc19e3f4"
-    token = os.environ["PNGME_TOKEN"]
 
+    token = os.environ["PNGME_TOKEN"]
     client = AsyncClient(token)
 
     utc_endtime = datetime(2021, 10, 1)
@@ -117,13 +120,12 @@ if __name__ == "__main__":
 
     async def main():
 
-        average_end_of_day_balance = await get_average_end_of_day_balance(
+        average_of_balances = await get_average_end_of_day_balance(
             api_client=client,
             user_uuid=user_uuid,
             utc_starttime=utc_starttime,
             utc_endtime=utc_endtime,
         )
-
-        print(average_end_of_day_balance)
+        print(average_of_balances)
 
     asyncio.run(main())
