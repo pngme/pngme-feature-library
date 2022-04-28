@@ -3,7 +3,6 @@
 import asyncio
 import os
 from datetime import datetime, timedelta
-import pandas as pd  # type: ignore
 
 from pngme.api import AsyncClient
 
@@ -54,19 +53,12 @@ async def get_sum_of_loan_repayments(
     for inst_lst in r:
         record_list.extend([dict(transaction) for transaction in inst_lst])
 
-    # if no data available for the user, assume loan repayment is zero
-    if len(record_list) == 0:
-        return 0.0
-
-    record_df = pd.DataFrame(record_list)
-
-    time_window_filter = (
-        (record_df.impact == "CREDIT")
-        & (record_df.ts >= utc_starttime.timestamp())
-        & (record_df.ts < utc_endtime.timestamp())
-    )
-
-    return record_df[time_window_filter].amount.sum()
+    repayments_sum = 0
+    for record in record_list:
+        if (record["impact"] == "CREDIT" and record["ts"] >= utc_starttime.timestamp() and record["ts"] < utc_endtime.timestamp()):
+            repayments_sum += record["amount"]
+           
+    return repayments_sum
 
 
 if __name__ == "__main__":
@@ -76,7 +68,7 @@ if __name__ == "__main__":
     token = os.environ["PNGME_TOKEN"]
     client = AsyncClient(token)
 
-    utc_endtime = datetime(2021, 10, 1)
+    utc_endtime = datetime(2021, 11, 1)
     utc_starttime = utc_endtime - timedelta(days=30)
 
     async def main():
