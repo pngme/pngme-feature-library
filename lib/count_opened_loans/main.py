@@ -3,8 +3,7 @@ import asyncio
 import os
 from datetime import datetime, timedelta
 
-import pandas as pd  # type: ignore
-from typing import Dict
+from typing import Dict, List
 
 from pngme.api import AsyncClient
 
@@ -50,22 +49,29 @@ async def get_count_loan_approved_or_disbursed_events(
 
     alerts_by_institution_id = dict(zip(institution_ids, r))
 
-    alert_df_by_institution_id: Dict[str, pd.DataFrame] = {}
+    alerts_list_by_institution_id: Dict[str, List[Dict]] = {}
     for institution_id, alerts in alerts_by_institution_id.items():
         if alerts:
-            alert_df_by_institution_id[institution_id] = pd.DataFrame(
-                [alert.dict() for alert in alerts]
-            )
+            alerts_list_by_institution_id[institution_id] = [
+                alert.dict() for alert in alerts
+            ]
 
     count_loan_approved_or_disbursed_events = 0
-    for institution_id, alert_df in alert_df_by_institution_id.items():
 
-        time_window_filter = (alert_df.ts >= utc_starttime.timestamp()) & (
-            alert_df.ts < utc_endtime.timestamp()
-        )
-        alert_df_filtered = alert_df[time_window_filter]
+    for institution_id, alerts_list in alerts_list_by_institution_id.items():
 
-        if len(alert_df_filtered):
+        filtered_alerts_list_on_time_window = []
+
+        for alert_record in alerts_list:
+            if (
+                alert_record["ts"] >= utc_starttime.timestamp()
+                and alert_record["ts"] < utc_endtime.timestamp()
+            ):
+                filtered_alerts_list_on_time_window.append(alert_record)
+
+        if len(filtered_alerts_list_on_time_window):
+            # Assumption that the user at any point of time will have a maximum
+            # of 1 open loan with an institution
             count_loan_approved_or_disbursed_events += 1
 
     return count_loan_approved_or_disbursed_events
