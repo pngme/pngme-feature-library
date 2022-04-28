@@ -2,7 +2,6 @@
 import asyncio
 import os
 from datetime import datetime, timedelta
-import pandas as pd  # type: ignore
 
 from pngme.api import AsyncClient
 
@@ -46,18 +45,24 @@ async def get_sum_of_depository_balances_latest(
     ]
 
     r = await asyncio.gather(*inst_coroutines)
-    record_list = []
+    records_list = []
     for ix, inst_list in enumerate(r):
         institution_id = institutions[ix].institution_id
-        record_list.extend([dict(transaction, institution_id=institution_id) for transaction in inst_list])
-    # consider the sum of balances to be zero, if no data is present
-    if len(record_list) == 0:
-        return 0.0
+        records_list.extend([dict(transaction, institution_id=institution_id) for transaction in inst_list])
+    
+    # Here we sort by timestamp so latest balances are on top
+    records_list = sorted(records_list, key=lambda x: x["ts"], reverse=True)
 
-    balances_df = pd.DataFrame(record_list)
-    # sort df desc so we can take the top values as latest ts within each group
-    balances_df.sort_values(by=['ts'], ascending=False, inplace=True)
-    sum_of_balances_latest = balances_df.groupby(["institution_id", "account_id"]).head(1)["balance"].sum()
+    # Then we loop through all balances per institution and account and store the latest balance
+    latest_balances = {}
+    for loan_record in records_list:
+        key = (loan_record["institution_id"], loan_record["account_id"])
+        if key not in latest_balances:
+            latest_balances[key] = loan_record["balance"]
+    
+    # Finally, we can sum all the balances
+    sum_of_balances_latest = sum(latest_balances.values())
+
     return sum_of_balances_latest
 
 

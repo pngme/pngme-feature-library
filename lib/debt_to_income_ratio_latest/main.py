@@ -3,7 +3,6 @@
 import asyncio
 import os
 from datetime import datetime, timedelta
-import pandas as pd  # type: ignore
 from pngme.api import AsyncClient
 
 
@@ -97,20 +96,23 @@ async def get_debt_to_income_ratio_latest(
     if len(depository_credit_records_list) == 0:
         return float("inf")
 
-    # Sum of balances across all loan accounts
-    loan_records_df = pd.DataFrame(loan_records_list)
+    # Here we sort by timestamp so latest balances are on top
+    loan_records_list = sorted(loan_records_list, key=lambda x: x["ts"], reverse=True)
 
-    # sort df desc so we can take the top values as latest ts within each group
-    loan_records_df.sort_values(by=["ts"], ascending=False, inplace=True)
-    sum_of_loan_balances_latest = (
-        loan_records_df.groupby(["institution_id", "account_id"])
-        .head(1)["balance"]
-        .sum()
-    )
+    # Then we loop through all balances per institution and account and store the latest balance
+    latest_balances = {}
+    for loan_record in loan_records_list:
+        key = (loan_record["institution_id"], loan_record["account_id"])
+        if key not in latest_balances:
+            latest_balances[key] = loan_record["balance"]
+    
+    # Finally, we can sum all the balances
+    sum_of_loan_balances_latest = sum(latest_balances.values())
 
     # Sum of credit transactions across all depository accounts
-    depository_credit_records_df = pd.DataFrame(depository_credit_records_list)
-    sum_of_depository_credit_transactions = depository_credit_records_df.amount.sum()
+    sum_of_depository_credit_transactions = 0
+    for credit in depository_credit_records_list:
+        sum_of_depository_credit_transactions += credit["amount"]
 
     # Compute debt to income ratio
     ratio = sum_of_loan_balances_latest / sum_of_depository_credit_transactions

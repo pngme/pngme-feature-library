@@ -4,10 +4,7 @@ import os
 from datetime import datetime, timedelta
 from re import I
 
-import pandas as pd  # type: ignore
-
 from pngme.api import AsyncClient
-
 
 async def get_count_betting_and_lottery_events(
     api_client: AsyncClient,
@@ -48,13 +45,10 @@ async def get_count_betting_and_lottery_events(
     if len(record_list) == 0:
         return 0
 
-    record_df = pd.DataFrame(record_list)
-
-    time_window_filter = (record_df.ts >= utc_starttime.timestamp()) & (
-        record_df.ts < utc_endtime.timestamp()
-    )
-
-    count_betting_and_lottery_events = len(record_df[time_window_filter])
+    count_betting_and_lottery_events = 0
+    for alert in record_list:
+        if alert["ts"] >= utc_starttime.timestamp() and alert["ts"] < utc_endtime.timestamp():
+            count_betting_and_lottery_events += 1
 
     return count_betting_and_lottery_events
 
