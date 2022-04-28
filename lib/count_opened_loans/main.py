@@ -72,7 +72,7 @@ if __name__ == "__main__":
     utc_starttime = utc_endtime - timedelta(days=30)
 
     async def main():
-        c = (
+        count = (
             await get_count_institutions_with_open_loans(
                 client,
                 user_uuid,
