@@ -3,8 +3,6 @@ import asyncio
 import os
 from datetime import datetime, timedelta
 
-import pandas as pd  # type: ignore
-
 from pngme.api import AsyncClient
 
 
@@ -45,17 +43,12 @@ async def get_count_overdraft_events(
     for inst_list in r:
         record_list.extend([dict(alert) for alert in inst_list])
 
-    # if no data available for the user, assume count of LoanRepaid event is zero
-    if len(record_list) == 0:
-        return 0
-
-    record_df = pd.DataFrame(record_list)
-
-    time_window_filter = (record_df.ts >= utc_starttime.timestamp()) & (
-        record_df.ts < utc_endtime.timestamp()
-    )
-
-    return len(record_df[time_window_filter])
+    count_overdraft_events = 0
+    for alert in record_list:
+        if alert["ts"] >= utc_starttime.timestamp() and alert["ts"] < utc_endtime.timestamp():
+            count_overdraft_events += 1
+    
+    return count_overdraft_events
 
 
 if __name__ == "__main__":
