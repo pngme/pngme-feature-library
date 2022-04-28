@@ -3,19 +3,21 @@ import asyncio
 import os
 from datetime import datetime, timedelta
 
-from typing import Dict, List
-
 from pngme.api import AsyncClient
 
 
-async def get_count_loan_approved_or_disbursed_events(
+async def get_count_institutions_with_open_loans(
     api_client: AsyncClient,
     user_uuid: str,
     utc_starttime: datetime,
     utc_endtime: datetime,
 ) -> int:
     """
-    Count events labeled with LoanApproved or LoanDisbursed across all institutions
+    Count the number of institutions where loans have been opened, in a given time window.
+
+    Assumptions:
+    Assume that an institution that has has one or more loans opened
+    will have one or more LoanApproved or LoanDisbursed labels in that time window.
 
     Args:
         api_client: Pngme Async API client
@@ -24,57 +26,39 @@ async def get_count_loan_approved_or_disbursed_events(
         utc_endtime: the UTC time to end the time window
 
     Returns:
-        count of LoanApproved or LoanDisbursed events within the given time window
+        count of institutions with one or more opened loans
     """
+    # STEP 1: fetch list of institutions belonging to the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
-    # subset to only fetch data for institutions known to contain loan-type accounts for the user
-    institutions_w_loan = [
-        inst for inst in institutions if "loan" in inst.account_types
-    ]
+    # subset to only institutions that contain loan-type accounts
+    institutions_w_loan = []
+    for inst in institutions:
+        if "loan" in inst.account_types:
+            institutions_w_loan.append(inst)
 
-    inst_coroutines = [
-        api_client.alerts.get(
-            user_uuid=user_uuid,
-            institution_id=institution.institution_id,
-            utc_starttime=utc_starttime,
-            utc_endtime=utc_endtime,
-            labels=["LoanApproved", "LoanDisbursed"],
+    # STEP 2: fetch alert records for all institutions that contain loan-type accounts
+    alerts_coroutines = []
+    for inst_w_loan in institutions_w_loan:
+        alerts_coroutines.append(
+            api_client.alerts.get(
+                user_uuid=user_uuid,
+                institution_id=inst_w_loan.institution_id,
+                utc_starttime=utc_starttime,
+                utc_endtime=utc_endtime,
+                labels=["LoanApproved", "LoanDisbursed"],
+            )
         )
-        for institution in institutions_w_loan
-    ]
 
-    r = await asyncio.gather(*inst_coroutines)
-    institution_ids = [institution.institution_id for institution in institutions]
+    r = await asyncio.gather(*alerts_coroutines)
 
-    alerts_by_institution_id = dict(zip(institution_ids, r))
+    # STEP 3: count number of institutions that have 1 or more alert records with LoanApproved or LoanDisbursed label
+    count_institution_with_open_loans = 0
+    for institution_alerts in r:
+        if len(institution_alerts) > 0:
+            count_institution_with_open_loans += 1
 
-    alerts_list_by_institution_id: Dict[str, List[Dict]] = {}
-    for institution_id, alerts in alerts_by_institution_id.items():
-        if alerts:
-            alerts_list_by_institution_id[institution_id] = [
-                alert.dict() for alert in alerts
-            ]
-
-    count_loan_approved_or_disbursed_events = 0
-
-    for institution_id, alerts_list in alerts_list_by_institution_id.items():
-
-        filtered_alerts_list_on_time_window = []
-
-        for alert_record in alerts_list:
-            if (
-                alert_record["ts"] >= utc_starttime.timestamp()
-                and alert_record["ts"] < utc_endtime.timestamp()
-            ):
-                filtered_alerts_list_on_time_window.append(alert_record)
-
-        if len(filtered_alerts_list_on_time_window):
-            # Assumption that the user at any point of time will have a maximum
-            # of 1 open loan with an institution
-            count_loan_approved_or_disbursed_events += 1
-
-    return count_loan_approved_or_disbursed_events
+    return count_institution_with_open_loans
 
 
 if __name__ == "__main__":
@@ -88,8 +72,8 @@ if __name__ == "__main__":
     utc_starttime = utc_endtime - timedelta(days=30)
 
     async def main():
-        count_loan_approved_or_disbursed_events = (
-            await get_count_loan_approved_or_disbursed_events(
+        count = (
+            await get_count_institutions_with_open_loans(
                 client,
                 user_uuid,
                 utc_starttime,
@@ -97,6 +81,6 @@ if __name__ == "__main__":
             )
         )
 
-        print(count_loan_approved_or_disbursed_events)
+        print(c)
 
     asyncio.run(main())
