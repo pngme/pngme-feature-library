@@ -4,7 +4,6 @@ import asyncio
 import os
 from datetime import datetime, timedelta
 import pandas as pd  # type: ignore
-from typing import Tuple
 from pngme.api import AsyncClient
 
 

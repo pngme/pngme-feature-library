@@ -4,32 +4,29 @@ import os
 from datetime import datetime, timedelta
 
 import pandas as pd  # type: ignore
-from typing import Dict, Tuple
+from typing import Dict
 
 from pngme.api import AsyncClient
 
 
 async def get_count_loan_approved_or_disbursed_events(
-    api_client: AsyncClient, user_uuid: str, utc_time: datetime
-) -> Tuple[int, int, int]:
+    api_client: AsyncClient,
+    user_uuid: str,
+    utc_starttime: datetime,
+    utc_endtime: datetime,
+) -> int:
     """
     Count events labeled with LoanApproved or LoanDisbursed across all institutions
-    over the following date ranges: last 30 days, 31-60 days and 61-90 days.
 
     Args:
         api_client: Pngme Async API client
         user_uuid: the Pngme user_uuid for the mobile phone user
-        utc_time: the time-zero to use in constructing the 0-30, 31-60 and 61-90 windows
+        utc_starttime: the UTC time to start the time window
+        utc_endtime: the UTC time to end the time window
 
     Returns:
         count of LoanApproved or LoanDisbursed events within the given time window
     """
-    labels = ["LoanApproved", "LoanDisbursed"]
-
-    count_loan_approved_or_disbursed_events_0_30 = 0
-    count_loan_approved_or_disbursed_events_31_60 = 0
-    count_loan_approved_or_disbursed_events_61_90 = 0
-
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
     # subset to only fetch data for institutions known to contain loan-type accounts for the user
@@ -37,14 +34,13 @@ async def get_count_loan_approved_or_disbursed_events(
         inst for inst in institutions if "loan" in inst.account_types
     ]
 
-    utc_starttime = utc_time - timedelta(days=90)
     inst_coroutines = [
         api_client.alerts.get(
             user_uuid=user_uuid,
             institution_id=institution.institution_id,
             utc_starttime=utc_starttime,
-            utc_endtime=utc_time,
-            labels=labels,
+            utc_endtime=utc_endtime,
+            labels=["LoanApproved", "LoanDisbursed"],
         )
         for institution in institutions_w_loan
     ]
@@ -61,35 +57,18 @@ async def get_count_loan_approved_or_disbursed_events(
                 [alert.dict() for alert in alerts]
             )
 
-    ts_30 = (utc_time - timedelta(days=30)).timestamp()
-    ts_60 = (utc_time - timedelta(days=60)).timestamp()
-    ts_90 = (utc_time - timedelta(days=90)).timestamp()
-
+    count_loan_approved_or_disbursed_events = 0
     for institution_id, alert_df in alert_df_by_institution_id.items():
 
-        filter_0_30 = alert_df.ts >= ts_30
-        alert_df_0_30 = alert_df[filter_0_30]
+        time_window_filter = (alert_df.ts >= utc_starttime.timestamp()) & (
+            alert_df.ts < utc_endtime.timestamp()
+        )
+        alert_df_filtered = alert_df[time_window_filter]
 
-        if len(alert_df_0_30):
-            count_loan_approved_or_disbursed_events_0_30 += 1
+        if len(alert_df_filtered):
+            count_loan_approved_or_disbursed_events += 1
 
-        filter_31_60 = (alert_df.ts >= ts_60) & (alert_df.ts < ts_30)
-        alert_df_31_60 = alert_df[filter_31_60]
-
-        if len(alert_df_31_60):
-            count_loan_approved_or_disbursed_events_31_60 += 1
-
-        filter_61_90 = (alert_df.ts >= ts_90) & (alert_df.ts < ts_60)
-        alert_df_61_90 = alert_df[filter_61_90]
-
-        if len(alert_df_61_90):
-            count_loan_approved_or_disbursed_events_61_90 += 1
-
-    return (
-        count_loan_approved_or_disbursed_events_0_30,
-        count_loan_approved_or_disbursed_events_31_60,
-        count_loan_approved_or_disbursed_events_61_90,
-    )
+    return count_loan_approved_or_disbursed_events
 
 
 if __name__ == "__main__":
@@ -99,17 +78,19 @@ if __name__ == "__main__":
     token = os.environ["PNGME_TOKEN"]
     client = AsyncClient(token)
 
-    now = datetime(2021, 11, 1)
+    utc_endtime = datetime(2021, 11, 1)
+    utc_starttime = utc_endtime - timedelta(days=30)
 
     async def main():
-        (
-            count_loan_approved_or_disbursed_events_0_30,
-            count_loan_approved_or_disbursed_events_31_60,
-            count_loan_approved_or_disbursed_events_61_90,
-        ) = await get_count_loan_approved_or_disbursed_events(client, user_uuid, now)
+        count_loan_approved_or_disbursed_events = (
+            await get_count_loan_approved_or_disbursed_events(
+                client,
+                user_uuid,
+                utc_starttime,
+                utc_endtime,
+            )
+        )
 
-        print(count_loan_approved_or_disbursed_events_0_30)
-        print(count_loan_approved_or_disbursed_events_31_60)
-        print(count_loan_approved_or_disbursed_events_61_90)
+        print(count_loan_approved_or_disbursed_events)
 
     asyncio.run(main())

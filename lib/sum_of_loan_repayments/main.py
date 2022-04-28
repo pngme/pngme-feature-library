@@ -4,27 +4,29 @@ import asyncio
 import os
 from datetime import datetime, timedelta
 import pandas as pd  # type: ignore
-from typing import Tuple
 
 from pngme.api import AsyncClient
 
 
 async def get_sum_of_loan_repayments(
-    api_client: AsyncClient, user_uuid: str, utc_time: datetime
-) -> Tuple[float, float, float]:
+    api_client: AsyncClient,
+    user_uuid: str,
+    utc_starttime: datetime,
+    utc_endtime: datetime,
+) -> float:
     """
     Sum of loan repayments (i.e. credit transactions across all loan accounts) in a given period.
 
     No currency conversions are performed.
 
-    Date ranges are 30 days, 31-60 days and 61-90 days.
     Sum of loan repayments is calculated by totaling credit transactions
     across all of a user's loan accounts during the given time period.
 
     Args:
         api_client: Pngme Async API client
         user_uuid: the Pngme user_uuid for the mobile phone user
-        utc_time: the time-zero to use in constructing the 0-30, 31-60 and 61-90 windows
+        utc_starttime: the UTC time to start the time window
+        utc_endtime: the UTC time to end the time window
 
     Returns:
         the sum total of all loan repayments (i.e. credit transaction amounts across all loan accounts) over the predefined ranges.
@@ -38,13 +40,12 @@ async def get_sum_of_loan_repayments(
 
     # Constructs a dataframe that contains transactions from all institutions for the user
     record_list = []
-    utc_starttime = utc_time - timedelta(days=90)
     inst_coroutines = [
         api_client.transactions.get(
             user_uuid=user_uuid,
             institution_id=institution.institution_id,
             utc_starttime=utc_starttime,
-            utc_endtime=utc_time,
+            utc_endtime=utc_endtime,
             account_types=["loan"],
         )
         for institution in institutions_w_loan
@@ -55,31 +56,17 @@ async def get_sum_of_loan_repayments(
 
     # if no data available for the user, assume loan repayment is zero
     if len(record_list) == 0:
-        return 0.0, 0.0, 0.0
+        return 0.0
 
     record_df = pd.DataFrame(record_list)
 
-    ts_30 = (utc_time - timedelta(days=30)).timestamp()
-    ts_60 = (utc_time - timedelta(days=60)).timestamp()
-    ts_90 = (utc_time - timedelta(days=90)).timestamp()
-
-    filter_0_30 = (record_df.impact == "CREDIT") & (record_df.ts >= ts_30)
-    filter_31_60 = (
+    time_window_filter = (
         (record_df.impact == "CREDIT")
-        & (record_df.ts >= ts_60)
-        & (record_df.ts < ts_30)
-    )
-    filter_61_90 = (
-        (record_df.impact == "CREDIT")
-        & (record_df.ts >= ts_90)
-        & (record_df.ts < ts_60)
+        & (record_df.ts >= utc_starttime.timestamp())
+        & (record_df.ts < utc_endtime.timestamp())
     )
 
-    repayment_0_30 = record_df[filter_0_30].amount.sum()
-    repayment_31_60 = record_df[filter_31_60].amount.sum()
-    repayment_61_90 = record_df[filter_61_90].amount.sum()
-
-    return repayment_0_30, repayment_31_60, repayment_61_90
+    return record_df[time_window_filter].amount.sum()
 
 
 if __name__ == "__main__":
@@ -89,17 +76,17 @@ if __name__ == "__main__":
     token = os.environ["PNGME_TOKEN"]
     client = AsyncClient(token)
 
-    now = datetime(2021, 10, 1)
+    utc_endtime = datetime(2021, 10, 1)
+    utc_starttime = utc_endtime - timedelta(days=30)
 
     async def main():
-        (
-            sum_of_repayments_0_30,
-            sum_of_repayments_31_60,
-            sum_of_repayments_61_90,
-        ) = await get_sum_of_loan_repayments(client, user_uuid, now)
+        sum_of_repayments = await get_sum_of_loan_repayments(
+            client,
+            user_uuid,
+            utc_starttime,
+            utc_endtime,
+        )
 
-        print(sum_of_repayments_0_30)
-        print(sum_of_repayments_31_60)
-        print(sum_of_repayments_61_90)
+        print(sum_of_repayments)
 
     asyncio.run(main())

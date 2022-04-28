@@ -3,27 +3,30 @@
 import asyncio
 import os
 from datetime import datetime, timedelta
-from typing import Optional, Tuple
+from typing import Optional
 
 from pngme.api import AsyncClient
 
 
 async def get_sum_of_credits(
-    api_client: AsyncClient, user_uuid: str, utc_time: datetime
-) -> Tuple[Optional[float], Optional[float], Optional[float]]:
+    api_client: AsyncClient,
+    user_uuid: str,
+    utc_starttime: datetime,
+    utc_time: datetime,
+) -> Optional[float]:
     """
     Sum credit transactions across all depository accounts in a given period.
 
     No currency conversions are performed.
 
-    Date ranges are 30 days, 31-60 days and 61-90 days.
     Sum of credits is calculated by totaling credit transactions
     across all of a user's depository accounts during the given time period.
 
     Args:
         api_client: Pngme Async API client
         user_uuid: the Pngme user_uuid for the mobile phone user
-        utc_time: the time-zero to use in constructing the 0-30, 31-60 and 61-90 windows
+        utc_starttime: the UTC time to start the time window
+        utc_endtime: the UTC time to end the time window
 
     Returns:
         the sum total of all credit transaction amounts over the predefined ranges.
@@ -32,10 +35,9 @@ async def get_sum_of_credits(
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
     # subset to only fetch data for institutions known to contain depository-type accounts for the user
-    institutions_w_depository = [inst for inst in institutions if "depository" in inst.account_types]
-
-    # at most, we retrieve data from last 90 days
-    utc_starttime = utc_time - timedelta(days=90)
+    institutions_w_depository = [
+        inst for inst in institutions if "depository" in inst.account_types
+    ]
 
     # API call including the account type filter so only "depository" transactions are returned if they exist
     inst_coroutines = [
@@ -48,7 +50,7 @@ async def get_sum_of_credits(
         )
         for institution in institutions_w_depository
     ]
-    
+
     r = await asyncio.gather(*inst_coroutines)
 
     # now we aggregate the results from each institution into a single list
@@ -56,26 +58,16 @@ async def get_sum_of_credits(
     for inst_lst in r:
         record_list.extend([dict(transaction) for transaction in inst_lst])
 
-    # now we prepare the time windows for the sums
-    ts_30 = (utc_time - timedelta(days=30)).timestamp()
-    ts_60 = (utc_time - timedelta(days=60)).timestamp()
-    ts_90 = (utc_time - timedelta(days=90)).timestamp()
-
     # now we sum the transaction amounts in each time window
-    amount_0_30 = None
-    amount_31_60 = None
-    amount_61_90 = None
+    amount = None
 
     for r in record_list:
         if r["impact"] == "CREDIT":
-            if r["ts"] >= ts_30:
-                amount_0_30 = _update_total(r["amount"], amount_0_30)
-            elif r["ts"] >= ts_60:
-                amount_31_60 = _update_total(r["amount"], amount_31_60)
-            elif r["ts"] >= ts_90:
-                amount_61_90 = _update_total(r["amount"], amount_61_90)
+            if r["ts"] >= utc_starttime.timestamp() and r["ts"] < utc_endtime.timestamp():
+                amount = _update_total(r["amount"], amount)
 
-    return amount_0_30, amount_31_60, amount_61_90
+    return amount
+
 
 def _update_total(amount, total):
     if total is None:
@@ -91,12 +83,16 @@ if __name__ == "__main__":
     token = os.environ["PNGME_TOKEN"]
     client = AsyncClient(token)
 
-    now = datetime(2021, 10, 1)
+    utc_endtime = datetime(2021, 10, 1)
+    utc_starttime = utc_endtime - timedelta(days=30)
 
     async def main():
-        soc_0_30, soc_31_60, soc_61_90 = await get_sum_of_credits(client, user_uuid, now)
-        print(soc_0_30)
-        print(soc_31_60)
-        print(soc_61_90)
+        soc = await get_sum_of_credits(
+            client,
+            user_uuid,
+            utc_starttime,
+            utc_endtime,
+        )
+        print(soc)
 
     asyncio.run(main())

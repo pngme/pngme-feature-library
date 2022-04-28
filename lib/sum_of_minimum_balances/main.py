@@ -11,16 +11,16 @@ from pngme.api import AsyncClient
 async def get_sum_of_minimum_balances(
     api_client: AsyncClient,
     user_uuid: str,
-    utc_time: datetime,
-    cutoff_interval: timedelta = timedelta(days=90),
+    utc_starttime: datetime,
+    utc_endtime: datetime,
 ) -> Tuple[Optional[float]]:
     """Sum observed minimum balances across all depository accounts over a given time window.
 
     Args:
         api_client: Pngme Async API client
         user_uuid: Pngme mobile phone user_uuid
-        utc_time: the time at which the balances are computed
-        cutoff_interval: if balance hasn't been updated within this interval, then balance record is stale, and method returns None
+        utc_starttime: the UTC time to start the time window
+        utc_endtime: the UTC time to end the time window
 
     Returns:
         Sum of minimum balance observed for all depository accounts, in a given time window.
@@ -28,7 +28,6 @@ async def get_sum_of_minimum_balances(
     """
 
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
-    utc_starttime = utc_time - cutoff_interval
 
     # subset to only fetch data for institutions known to contain depository-type accounts for the user
     institutions_w_depository = [
@@ -40,7 +39,7 @@ async def get_sum_of_minimum_balances(
             user_uuid=user_uuid,
             institution_id=institution.institution_id,
             utc_starttime=utc_starttime,
-            utc_endtime=utc_time,
+            utc_endtime=utc_endtime,
             account_types=["depository"],
         )
         for institution in institutions_w_depository
@@ -63,38 +62,18 @@ async def get_sum_of_minimum_balances(
 
     balances_df = pd.DataFrame(record_list)
 
-    ts_30 = (utc_time - timedelta(days=30)).timestamp()
-    ts_60 = (utc_time - timedelta(days=60)).timestamp()
-    ts_90 = (utc_time - timedelta(days=90)).timestamp()
-
-    filter_0_30 = balances_df.ts >= ts_30
-    filter_31_60 = (balances_df.ts >= ts_60) & (balances_df.ts < ts_30)
-    filter_61_90 = (balances_df.ts >= ts_90) & (balances_df.ts < ts_60)
-
-    sum_of_account_minimum_balances_0_30 = (
-        balances_df[filter_0_30]
-        .groupby(["institution_id", "account_id"])["balance"]
-        .min()
-        .sum()
+    time_window_filter = (balances_df.ts >= utc_starttime.timestamp()) & (
+        balances_df.ts < utc_endtime.timestamp()
     )
-    sum_of_account_minimum_balances_31_60 = (
-        balances_df[filter_31_60]
-        .groupby(["institution_id", "account_id"])["balance"]
-        .min()
-        .sum()
-    )
-    sum_of_account_minimum_balances_61_90 = (
-        balances_df[filter_61_90]
+
+    sum_of_account_minimum_balances = (
+        balances_df[time_window_filter]
         .groupby(["institution_id", "account_id"])["balance"]
         .min()
         .sum()
     )
 
-    return (
-        sum_of_account_minimum_balances_0_30,
-        sum_of_account_minimum_balances_31_60,
-        sum_of_account_minimum_balances_61_90,
-    )
+    return sum_of_account_minimum_balances
 
 
 if __name__ == "__main__":
@@ -104,21 +83,17 @@ if __name__ == "__main__":
     token = os.environ["PNGME_TOKEN"]
     client = AsyncClient(token)
 
-    decision_time = datetime(2021, 10, 1)
+    utc_endtime = datetime(2021, 10, 1)
+    utc_starttime = utc_endtime - timedelta(days=30)
 
     async def main():
-        (
-            sum_of_minimum_balances_0_30,
-            sum_of_minimum_balances_31_60,
-            sum_of_minimum_balances_61_90,
-        ) = await get_sum_of_minimum_balances(
+        sum_of_minimum_balances = await get_sum_of_minimum_balances(
             api_client=client,
             user_uuid=user_uuid,
-            utc_time=decision_time,
+            utc_starttime=utc_starttime,
+            utc_endtime=utc_endtime,
         )
 
-        print(sum_of_minimum_balances_0_30)
-        print(sum_of_minimum_balances_31_60)
-        print(sum_of_minimum_balances_61_90)
+        print(sum_of_minimum_balances)
 
     asyncio.run(main())
