@@ -59,14 +59,15 @@ async def get_count_loan_approved_or_disbursed_events(
     count_loan_approved_or_disbursed_events = 0
 
     for institution_id, alerts_list in alerts_list_by_institution_id.items():
-        filtered_alerts_list_on_time_window = [
-            alert_record
-            for alert_record in alerts_list
+
+        filtered_alerts_list_on_time_window = []
+
+        for alert_record in alerts_list:
             if (
                 alert_record["ts"] >= utc_starttime.timestamp()
                 and alert_record["ts"] < utc_endtime.timestamp()
-            )
-        ]
+            ):
+                filtered_alerts_list_on_time_window.append(alert_record)
 
         if len(filtered_alerts_list_on_time_window):
             # Assumption that the user at any point of time will have a maximum
