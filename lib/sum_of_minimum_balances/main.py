@@ -3,7 +3,6 @@ import asyncio
 import os
 from datetime import datetime, timedelta
 from typing import Optional, Tuple
-import pandas as pd  # type: ignore
 
 from pngme.api import AsyncClient
 
@@ -49,6 +48,8 @@ async def get_sum_of_minimum_balances(
     record_list = []
     for ix, inst_list in enumerate(r):
         institution_id = institutions[ix].institution_id
+        # We append the institution_id to each record so that we can
+        # group the records by institution_id and account_id
         record_list.extend(
             [
                 dict(transaction, institution_id=institution_id)
@@ -56,22 +57,16 @@ async def get_sum_of_minimum_balances(
             ]
         )
 
-    # return None, if no data is present
-    if len(record_list) == 0:
-        return (None, None, None)
-
-    balances_df = pd.DataFrame(record_list)
-
-    time_window_filter = (balances_df.ts >= utc_starttime.timestamp()) & (
-        balances_df.ts < utc_endtime.timestamp()
-    )
-
-    sum_of_account_minimum_balances = (
-        balances_df[time_window_filter]
-        .groupby(["institution_id", "account_id"])["balance"]
-        .min()
-        .sum()
-    )
+    # We only care about the minimum balance observed for each account of each institution
+    min_balances = {}
+    for record in record_list:
+        key = (record["institution_id"], record["account_id"])
+        if key not in min_balances:
+            min_balances[key] = record["balance"]
+        else:
+            min_balances[key] = min(min_balances[key], record["balance"])
+    
+    sum_of_account_minimum_balances = sum(min_balances.values())
 
     return sum_of_account_minimum_balances
 
@@ -83,7 +78,7 @@ if __name__ == "__main__":
     token = os.environ["PNGME_TOKEN"]
     client = AsyncClient(token)
 
-    utc_endtime = datetime(2021, 10, 1)
+    utc_endtime = datetime(2021, 11, 1)
     utc_starttime = utc_endtime - timedelta(days=30)
 
     async def main():
