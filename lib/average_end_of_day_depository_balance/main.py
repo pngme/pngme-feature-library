@@ -15,7 +15,7 @@ async def get_average_end_of_day_depository_balance(
     utc_starttime: datetime,
     utc_endtime: datetime,
 ) -> Optional[float]:
-    """Calculates the average end-of-day total balance for a user across all
+    """Calculates the average end-of-day depository balance total for a user across all
        of their accounts for a given time window.
 
        If no balance data was found, return None.
@@ -68,12 +68,12 @@ async def get_average_end_of_day_depository_balance(
 
     balances_df = pd.DataFrame(record_list)
 
-    # 2. Sort and create a column for day, filter by time window
+    # Sort and create a column for day, filter by time window
     balances_df = balances_df.sort_values("ts")
     balances_df["yyyymmdd"] = pd.to_datetime(balances_df["ts"], unit="s")
     balances_df["yyyymmdd"] = balances_df["yyyymmdd"].dt.floor("D")
 
-    # 3. Get end of day balances,
+    # Get end of day balances,
     # If an account changes balances three times a day in sequence, i.e. $100, $20, $120),
     # take the last one ($120)
     eod_balances = (
@@ -82,7 +82,7 @@ async def get_average_end_of_day_depository_balance(
         .set_index("yyyymmdd")
     )
 
-    # 4. First Forward fill missing days
+    # First Forward fill missing days
     ffilled_balances = (
         eod_balances.groupby(["institution_id", "account_id"])["balance"]
         .resample("1D", kind="timestamp")
@@ -90,12 +90,12 @@ async def get_average_end_of_day_depository_balance(
         .reset_index()
     )
 
-    # 5. Filter time window for the provided period
+    # Filter time window for the provided period
     ffilled_balances_in_time_window = ffilled_balances[
         ffilled_balances["yyyymmdd"].between(utc_starttime, utc_endtime)
     ]
 
-    # 6. Average all balances and calculate a global sum
+    # Average all balances and calculate a global sum
     avg_daily_balance = float(
         ffilled_balances_in_time_window.groupby(["institution_id", "account_id"])
         .mean()
