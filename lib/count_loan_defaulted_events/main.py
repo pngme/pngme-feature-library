@@ -34,7 +34,7 @@ async def get_count_loan_defaulted_events(
         if "loan" in inst.account_types:
             institutions_w_loan.append(inst)
 
-    # construct list of coroutines to fetch alert records with LoanDefaulted label
+    # STEP 2: fetch alert records containing the LoanDefaulted label, for each institution with loan-type data
     inst_coroutines = []
     for inst in institutions_w_loan:
         inst_coroutines.append(
@@ -50,7 +50,7 @@ async def get_count_loan_defaulted_events(
     # async fetch alerts across institutions with loans
     r = await asyncio.gather(*inst_coroutines)
 
-    # count the total number of LoanDefaulted alert records across all responses
+    # STEP 3: count the total number of LoanDefaulted alert records across all institutions with loan data
     count_loan_defaulted_events = 0
     for institution_alerts_resp in r:
         count_loan_defaulted_events += len(institution_alerts_resp)
