@@ -12,10 +12,10 @@ async def get_count_loan_defaulted_events(
     user_uuid: str,
     utc_starttime: datetime,
     utc_endtime: datetime,
-) -> Tuple[int, int, int]:
+) -> int:
     """
     Count events labeled with LoanDefaulted across all institutions
-    over the following date ranges: last 30 days, 31-60 days and 61-90 days.
+    over the range between utc_starttime and utc_endtime.
 
     Args:
         api_client: Pngme Async API client
@@ -26,38 +26,34 @@ async def get_count_loan_defaulted_events(
     Returns:
         count of LoanDefaulted events within the given time window
     """
+
+    # STEP 1: fetch a list of the user's institutions with loan-type data
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
+    institutions_w_loan = []
+    for inst in institutions:
+        if "loan" in inst.account_types:
+            institutions_w_loan.append(inst)
 
-    # subset to only fetch data for institutions known to contain loan-type accounts for the user
-    institutions_w_loan = [
-        inst for inst in institutions if "loan" in inst.account_types
-    ]
-
-    # API call including the label filter so only "LoanDefaulted" events are returned if they exist
-    inst_coroutines = [
-        api_client.alerts.get(
-            user_uuid=user_uuid,
-            institution_id=institution.institution_id,
-            utc_starttime=utc_starttime,
-            utc_endtime=utc_endtime,
-            labels=["LoanDefaulted"],
+    # construct list of coroutines to fetch alert records with LoanDefaulted label
+    inst_coroutines = []
+    for inst in institutions_w_loan:
+        inst_coroutines.append(
+            api_client.alerts.get(
+                user_uuid=user_uuid,
+                institution_id=inst.institution_id,
+                utc_starttime=utc_starttime,
+                utc_endtime=utc_endtime,
+                labels=["LoanDefaulted"],
+            )
         )
-        for institution in institutions_w_loan
-    ]
 
+    # async fetch alerts across institutions with loans
     r = await asyncio.gather(*inst_coroutines)
 
-    # now we aggregate the results from each institution into a single list
-    record_list = []
-    for inst_list in r:
-        record_list.extend([dict(alert) for alert in inst_list])
-
-    # now we count the number of events in each time window
+    # count the total number of LoanDefaulted alert records across all responses
     count_loan_defaulted_events = 0
-
-    for r in record_list:
-        if r["ts"] >= utc_starttime.timestamp() and r["ts"] < utc_endtime.timestamp():
-            count_loan_defaulted_events += 1
+    for institution_alerts_resp in r:
+        count_loan_defaulted_events += len(institution_alerts_resp)
 
     return count_loan_defaulted_events
 
