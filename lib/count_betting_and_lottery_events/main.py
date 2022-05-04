@@ -25,6 +25,12 @@ async def get_count_betting_and_lottery_events(
     # STEP 1: fetch list of institutions belonging to the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
     
+    # subset to only fetch data for institutions known to contain depository-type accounts for the user
+    institutions_w_depository = []
+    for inst in institutions:
+        if "depository" in inst.account_types:
+            institutions_w_depository.append(inst)
+
     # STEP 2: fetch alert records for all institutions with BettingAndLottery label
     inst_coroutines = [
         api_client.alerts.get(
@@ -34,18 +40,18 @@ async def get_count_betting_and_lottery_events(
             utc_endtime=utc_endtime,
             labels=["BettingAndLottery"],
         )
-        for institution in institutions
+        for institution in institutions_w_depository
     ]
 
     r = await asyncio.gather(*inst_coroutines)
 
     # STEP 3: flatten alerts into a single list
-    record_list = []
+    all_alerts = []
     for inst_list in r:
-        record_list.extend([dict(alert) for alert in inst_list])
+        all_alerts.extend([dict(alert) for alert in inst_list])
 
-    # STEP 4: count number of BettingAndLottery events
-    return len(record_list)
+    # STEP 4: count number of alerts
+    return len(all_alerts)
 
 
 if __name__ == "__main__":
