@@ -30,20 +30,22 @@ async def get_average_end_of_day_balance(
     Returns:
         the average end-of-day total balance over each window
     """
-
+    # STEP 1: fetch list of institutions belonging to the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
     # subset to only fetch data for institutions known to contain loan-type accounts for the user
-    institutions_w_loan = [
-        inst for inst in institutions if "loan" in inst.account_types
-    ]
+    institutions_w_loan = []
+    for inst in institutions:
+        if "loan" in inst.account_types:
+            institutions_w_loan.append(inst)
 
-    # Construct timerange since beginning of time
+    # STEP 2: Construct timerange since beginning of time
     # as default /balances endpoint only returns the latest balance
     today = datetime.today()
     all_pages_utc_endtime = datetime(today.year, today.month, today.day)
     all_pages_starttime = all_pages_utc_endtime - timedelta(days=1e5)
 
+    # STEP 3: fetch all balances for each institution using parallel calls
     inst_coroutines = [
         api_client.balances.get(
             user_uuid=user_uuid,
@@ -56,6 +58,7 @@ async def get_average_end_of_day_balance(
     ]
     r = await asyncio.gather(*inst_coroutines)
 
+    # STEP 4: flatten all balances from all institutions
     record_list = []
     for ix, inst_list in enumerate(r):
         institution_id = institutions[ix].institution_id
@@ -65,10 +68,11 @@ async def get_average_end_of_day_balance(
                 for transaction in inst_list
             ]
         )
-    # consider the sum of balances to be zero, if no data is present
+    # if no data is present, consider the sum of balances to be non-existing 
     if len(record_list) == 0:
         return None
 
+    # STEP 5: convert to pandas dataframe to help with the resampling
     balances_df = pd.DataFrame(record_list)
 
     # Sort and create a column for day, filter by time window
@@ -113,7 +117,7 @@ if __name__ == "__main__":
     user_uuid = "958a5ae8-f3a3-41d5-ae48-177fdc19e3f4"
 
     token = os.environ["PNGME_TOKEN"]
-    client = AsyncClient(token)
+    client = AsyncClient(access_token=token, base_url="https://api-dev.pngme.com/beta")
 
     utc_endtime = datetime(2021, 10, 1)
     utc_starttime = utc_endtime - timedelta(days=30)
@@ -127,5 +131,8 @@ if __name__ == "__main__":
             utc_endtime=utc_endtime,
         )
         print(average_of_balances)
+
+        # Dataset is set-up to return an expected value for the provided parameters
+        assert average_of_balances == 4996.25
 
     asyncio.run(main())
