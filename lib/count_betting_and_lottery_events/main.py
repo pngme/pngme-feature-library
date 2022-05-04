@@ -2,7 +2,6 @@
 import asyncio
 import os
 from datetime import datetime, timedelta
-from re import I
 
 from pngme.api import AsyncClient
 
@@ -23,7 +22,10 @@ async def get_count_betting_and_lottery_events(
     Returns:
         count of BettingAndLottery events within the given time window
     """
+    # STEP 1: fetch list of institutions belonging to the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
+    
+    # STEP 2: fetch alert records for all institutions with BettingAndLottery label
     inst_coroutines = [
         api_client.alerts.get(
             user_uuid=user_uuid,
@@ -37,25 +39,17 @@ async def get_count_betting_and_lottery_events(
 
     r = await asyncio.gather(*inst_coroutines)
 
+    # STEP 3: flatten alerts into a single list
     record_list = []
     for inst_list in r:
         record_list.extend([dict(alert) for alert in inst_list])
 
-    # if no data available for the user, assume count of BettingAndLottery event is zero
-    if len(record_list) == 0:
-        return 0
-
-    count_betting_and_lottery_events = 0
-    for alert in record_list:
-        if alert["ts"] >= utc_starttime.timestamp() and alert["ts"] < utc_endtime.timestamp():
-            count_betting_and_lottery_events += 1
-
-    return count_betting_and_lottery_events
+    # STEP 4: count number of BettingAndLottery events
+    return len(record_list)
 
 
 if __name__ == "__main__":
     # George Hassan, george@pngme.demo.com, 254789012345
-    #user_uuid = "6ea9480a-eafa-4eec-a1d2-f1c0c5411ccc"
     user_uuid = "7d96d780-abed-43c8-8f12-4435c9dd8ec5"
 
     token = os.environ["PNGME_TOKEN"]
@@ -73,5 +67,8 @@ if __name__ == "__main__":
             utc_endtime,
         )
         print(count_betting_and_lottery_events)
+
+        # Dataset is set-up to return an expected value for the provided parameters
+        assert count_betting_and_lottery_events == 8
 
     asyncio.run(main())

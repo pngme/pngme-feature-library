@@ -117,7 +117,7 @@ if __name__ == "__main__":
     user_uuid = "958a5ae8-f3a3-41d5-ae48-177fdc19e3f4"
 
     token = os.environ["PNGME_TOKEN"]
-    client = AsyncClient(access_token=token, base_url="https://api-dev.pngme.com/beta")
+    client = AsyncClient(token)
 
     utc_endtime = datetime(2021, 10, 1)
     utc_starttime = utc_endtime - timedelta(days=30)
