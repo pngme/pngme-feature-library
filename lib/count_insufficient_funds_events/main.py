@@ -33,23 +33,25 @@ async def get_count_insufficient_funds_events(
             institutions_w_depository.append(inst)
 
     # STEP 2: fetch alert records for all institutions with InsufficientFunds events
-    inst_coroutines = [
-        api_client.alerts.get(
-            user_uuid=user_uuid,
-            institution_id=institution.institution_id,
-            utc_starttime=utc_starttime,
-            utc_endtime=utc_endtime,
-            labels=["InsufficientFunds"],
+    alerts_coroutines = []
+    for inst_w_loan in institutions_w_depository:
+        alerts_coroutines.append(
+            api_client.alerts.get(
+                user_uuid=user_uuid,
+                institution_id=inst_w_loan.institution_id,
+                utc_starttime=utc_starttime,
+                utc_endtime=utc_endtime,
+                labels=["InsufficientFunds"],
+            )
         )
-        for institution in institutions_w_depository
-    ]
 
-    r = await asyncio.gather(*inst_coroutines)
+    alerts_per_institution = await asyncio.gather(*alerts_coroutines)
 
     # STEP 3: flatten alerts into a single list
     all_alerts = []
-    for inst_list in r:
-        all_alerts.extend([dict(alert) for alert in inst_list])
+    for alerts_list in alerts_per_institution:
+        for alert in alerts_list:
+            all_alerts.append(alert)
 
     # STEP 4: count number of alerts
     return len(all_alerts)

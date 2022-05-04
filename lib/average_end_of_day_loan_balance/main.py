@@ -46,28 +46,27 @@ async def get_average_end_of_day_balance(
     all_pages_starttime = all_pages_utc_endtime - timedelta(days=1e5)
 
     # STEP 3: fetch all balances for each institution using parallel calls
-    inst_coroutines = [
-        api_client.balances.get(
-            user_uuid=user_uuid,
-            institution_id=institution.institution_id,
-            utc_starttime=all_pages_starttime,
-            utc_endtime=all_pages_utc_endtime,
-            account_types=["loan"],
+    inst_coroutines = []
+    for institution in institutions_w_loan:
+        inst_coroutines.append(
+            api_client.balances.get(
+                user_uuid=user_uuid,
+                institution_id=institution.institution_id,
+                utc_starttime=all_pages_starttime,
+                utc_endtime=all_pages_utc_endtime,
+                account_types=["loan"],
+            )
         )
-        for institution in institutions_w_loan
-    ]
+
     r = await asyncio.gather(*inst_coroutines)
 
     # STEP 4: flatten all balances from all institutions
     record_list = []
     for ix, inst_list in enumerate(r):
         institution_id = institutions[ix].institution_id
-        record_list.extend(
-            [
-                dict(transaction, institution_id=institution_id)
-                for transaction in inst_list
-            ]
-        )
+        for transaction in inst_list:
+            record_list.append(dict(transaction, institution_id=institution_id))
+            
     # if no data is present, consider the sum of balances to be non-existing 
     if len(record_list) == 0:
         return None
