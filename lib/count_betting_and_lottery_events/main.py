@@ -2,7 +2,6 @@
 import asyncio
 import os
 from datetime import datetime, timedelta
-from re import I
 
 from pngme.api import AsyncClient
 
@@ -23,39 +22,42 @@ async def get_count_betting_and_lottery_events(
     Returns:
         count of BettingAndLottery events within the given time window
     """
+    # STEP 1: fetch list of institutions belonging to the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
-    inst_coroutines = [
-        api_client.alerts.get(
-            user_uuid=user_uuid,
-            institution_id=institution.institution_id,
-            utc_starttime=utc_starttime,
-            utc_endtime=utc_endtime,
-            labels=["BettingAndLottery"],
+    
+    # subset to only fetch data for institutions known to contain depository-type accounts for the user
+    institutions_w_depository = []
+    for inst in institutions:
+        if "depository" in inst.account_types:
+            institutions_w_depository.append(inst)
+
+    # STEP 2: fetch alert records for all institutions with BettingAndLottery label
+    alerts_coroutines = []
+    for inst_w_loan in institutions_w_depository:
+        alerts_coroutines.append(
+            api_client.alerts.get(
+                user_uuid=user_uuid,
+                institution_id=inst_w_loan.institution_id,
+                utc_starttime=utc_starttime,
+                utc_endtime=utc_endtime,
+                labels=["BettingAndLottery"],
+            )
         )
-        for institution in institutions
-    ]
 
-    r = await asyncio.gather(*inst_coroutines)
+    alerts_per_institution = await asyncio.gather(*alerts_coroutines)
 
-    record_list = []
-    for inst_list in r:
-        record_list.extend([dict(alert) for alert in inst_list])
+    # STEP 3: flatten alerts into a single list
+    all_alerts = []
+    for alerts_list in alerts_per_institution:
+        for alert in alerts_list:
+            all_alerts.append(alert)
 
-    # if no data available for the user, assume count of BettingAndLottery event is zero
-    if len(record_list) == 0:
-        return 0
-
-    count_betting_and_lottery_events = 0
-    for alert in record_list:
-        if alert["ts"] >= utc_starttime.timestamp() and alert["ts"] < utc_endtime.timestamp():
-            count_betting_and_lottery_events += 1
-
-    return count_betting_and_lottery_events
+    # STEP 4: count number of alerts
+    return len(all_alerts)
 
 
 if __name__ == "__main__":
     # George Hassan, george@pngme.demo.com, 254789012345
-    #user_uuid = "6ea9480a-eafa-4eec-a1d2-f1c0c5411ccc"
     user_uuid = "7d96d780-abed-43c8-8f12-4435c9dd8ec5"
 
     token = os.environ["PNGME_TOKEN"]

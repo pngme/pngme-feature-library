@@ -72,7 +72,7 @@ if __name__ == "__main__":
     utc_starttime = utc_endtime - timedelta(days=30)
 
     async def main():
-        count = (
+        count_opened_loans = (
             await get_count_institutions_with_open_loans(
                 client,
                 user_uuid,
@@ -81,6 +81,6 @@ if __name__ == "__main__":
             )
         )
 
-        print(c)
+        print(count_opened_loans)
 
     asyncio.run(main())

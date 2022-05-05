@@ -23,40 +23,38 @@ async def get_count_insufficient_funds_events(
     Returns:
         count of InsufficientFunds events within the given time window
     """
+    # STEP 1: fetch list of institutions belonging to the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
     # subset to only fetch data for institutions known to contain depository-type accounts for the user
-    institutions_w_depository = [
-        inst for inst in institutions if "depository" in inst.account_types
-    ]
+    institutions_w_depository = []
+    for inst in institutions:
+        if "depository" in inst.account_types:
+            institutions_w_depository.append(inst)
 
-    inst_coroutines = [
-        api_client.alerts.get(
-            user_uuid=user_uuid,
-            institution_id=institution.institution_id,
-            utc_starttime=utc_starttime,
-            utc_endtime=utc_endtime,
-            labels=["InsufficientFunds"],
+    # STEP 2: fetch alert records for all institutions with InsufficientFunds events
+    alerts_coroutines = []
+    for inst_w_loan in institutions_w_depository:
+        alerts_coroutines.append(
+            api_client.alerts.get(
+                user_uuid=user_uuid,
+                institution_id=inst_w_loan.institution_id,
+                utc_starttime=utc_starttime,
+                utc_endtime=utc_endtime,
+                labels=["InsufficientFunds"],
+            )
         )
-        for institution in institutions_w_depository
-    ]
 
-    r = await asyncio.gather(*inst_coroutines)
+    alerts_per_institution = await asyncio.gather(*alerts_coroutines)
 
-    record_list = []
-    for inst_list in r:
-        record_list.extend([dict(alert) for alert in inst_list])
+    # STEP 3: flatten alerts into a single list
+    all_alerts = []
+    for alerts_list in alerts_per_institution:
+        for alert in alerts_list:
+            all_alerts.append(alert)
 
-    # if no data available for the user, assume count of InsufficientFunds event is zero
-    if len(record_list) == 0:
-        return 0
-
-    count_insufficient_funds_events = 0
-    for alert in record_list:
-        if alert["ts"] >= utc_starttime.timestamp() and alert["ts"] < utc_endtime.timestamp():
-            count_insufficient_funds_events += 1
-
-    return count_insufficient_funds_events
+    # STEP 4: count number of alerts
+    return len(all_alerts)
 
 
 if __name__ == "__main__":
@@ -77,5 +75,5 @@ if __name__ == "__main__":
             utc_endtime,
         )
         print(count_insufficient_funds_events)
-
+    
     asyncio.run(main())
