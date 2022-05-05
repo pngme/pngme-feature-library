@@ -83,7 +83,4 @@ if __name__ == "__main__":
 
         print(count_opened_loans)
 
-        # Dataset is set-up to return an expected value for the provided parameters
-        assert count_opened_loans == 6
-
     asyncio.run(main())

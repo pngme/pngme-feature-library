@@ -131,7 +131,4 @@ if __name__ == "__main__":
         )
         print(average_of_balances)
 
-        # Dataset is set-up to return an expected value for the provided parameters
-        assert average_of_balances == 4996.25
-
     asyncio.run(main())

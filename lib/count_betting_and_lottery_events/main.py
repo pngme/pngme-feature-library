@@ -76,7 +76,4 @@ if __name__ == "__main__":
         )
         print(count_betting_and_lottery_events)
 
-        # Dataset is set-up to return an expected value for the provided parameters
-        assert count_betting_and_lottery_events == 8
-
     asyncio.run(main())

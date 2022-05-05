@@ -75,7 +75,5 @@ if __name__ == "__main__":
             utc_endtime,
         )
         print(count_insufficient_funds_events)
-        
-        # Dataset is set-up to return an expected value for the provided parameters
-        assert count_insufficient_funds_events == 6
+    
     asyncio.run(main())
