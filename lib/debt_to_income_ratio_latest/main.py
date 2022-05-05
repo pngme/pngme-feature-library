@@ -9,8 +9,8 @@ from pngme.api import AsyncClient
 async def get_debt_to_income_ratio_latest(
     api_client: AsyncClient,
     user_uuid: str,
-    utc_time: datetime,
-    cutoff_interval: timedelta = timedelta(days=30),
+    utc_starttime: datetime,
+    utc_endtime: datetime,    
 ) -> float:
     """Compute the debt to income ratio over a given period
 
@@ -20,8 +20,8 @@ async def get_debt_to_income_ratio_latest(
     Args:
         api_client: Pngme Async API client
         user_uuid: Pngme mobile phone user_uuid
-        utc_time: the time at which the latest debt_to_income ratio is computed
-        cutoff_interval: if balance hasn't been updated within this interval, then balance record is stale, and method returns 0
+        utc_endtime: the time at which the latest debt_to_income ratio is computed
+        utc_starttime: if balance hasn't been updated since this day, then balance record is stale, and method returns None
 
     Returns:
         Ratio of debt / income for the given user. Returning 0 would correspond to a 0 debt amount,
@@ -30,7 +30,6 @@ async def get_debt_to_income_ratio_latest(
     
     # STEP 1: fetch list of institutions belonging to the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
-    utc_starttime = utc_time - cutoff_interval    
 
     # subset to only fetch data for institutions known to contain loan-type accounts for the user
     institutions_w_loan = []
@@ -46,7 +45,7 @@ async def get_debt_to_income_ratio_latest(
                 user_uuid=user_uuid,
                 institution_id=institution.institution_id,
                 utc_starttime=utc_starttime,
-                utc_endtime=utc_time,
+                utc_endtime=utc_endtime,
                 account_types=["loan"],
             )
         )
@@ -65,7 +64,7 @@ async def get_debt_to_income_ratio_latest(
                 user_uuid=user_uuid,
                 institution_id=institution.institution_id,
                 utc_starttime=utc_starttime,
-                utc_endtime=utc_time,
+                utc_endtime=utc_endtime,
                 account_types=["depository"],
             )
         )
@@ -95,11 +94,17 @@ async def get_debt_to_income_ratio_latest(
             if transaction_record.impact == "CREDIT":
                 depository_credit_records_list.append(dict(transaction_record))
 
-    # if no data available for the user, assume sum of loan balances to be zero
+    # STEP 5.2: Early exit for edge cases
+    
+    ## if there is no updated balance since the start time, then return None
+    if not loan_records_list and not depository_credit_records_list:
+        return None
+
+    ## if no data available for the user, assume sum of loan balances to be zero
     if len(loan_records_list) == 0:
         return 0.0
 
-    # if no data available for the user, assume cash-in is zero
+    ## if no data available for the user, assume cash-in is zero
     if len(depository_credit_records_list) == 0:
         return float("inf")
 
@@ -140,12 +145,15 @@ if __name__ == "__main__":
     client = AsyncClient(token)
 
     now = datetime(2021, 9, 1)
+    cutoff_interval = timedelta(days=30)
+    utc_starttime = now - cutoff_interval
 
     async def main():
         debt_to_income_ratio_latest = await get_debt_to_income_ratio_latest(
             api_client=client,
             user_uuid=user_uuid,
-            utc_time=now,
+            utc_starttime=utc_starttime,
+            utc_endtime=now,
         )
 
         print(debt_to_income_ratio_latest)

@@ -9,8 +9,8 @@ from pngme.api import AsyncClient
 async def get_sum_of_depository_balances_latest(
     api_client: AsyncClient,
     user_uuid: str,
-    utc_time: datetime,
-    cutoff_interval: timedelta = timedelta(days=90),
+    utc_starttime: datetime,
+    utc_endtime: datetime,
 ) -> float:
     """Return the latest balance summed across all depository accounts.
 
@@ -20,8 +20,8 @@ async def get_sum_of_depository_balances_latest(
     Args:
         api_client: Pngme Async API client
         user_uuid: Pngme mobile phone user_uuid
-        utc_time: the time at which the latest balance is computed
-        cutoff_interval: if balance hasn't been updated within this interval, then balance record is stale, and method returns 0
+        utc_starttime: the time from which balances are considered
+        utc_endtime: the time until which balances are considered
 
     Returns:
         The latest balance summed across all depository accounts
@@ -29,7 +29,6 @@ async def get_sum_of_depository_balances_latest(
 
     # STEP 1: get a list of all institutions for the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
-    utc_starttime = utc_time - cutoff_interval
 
     # subset to only fetch data for institutions known to contain depository-type accounts for the user
     institutions_w_depository = []
@@ -45,7 +44,7 @@ async def get_sum_of_depository_balances_latest(
                 user_uuid=user_uuid,
                 institution_id=inst.institution_id,
                 utc_starttime=utc_starttime,
-                utc_endtime=utc_time,
+                utc_endtime=utc_endtime,
                 account_types=["depository"],
         )
     )
@@ -84,10 +83,15 @@ if __name__ == "__main__":
     client = AsyncClient(token)
 
     now = datetime(2021, 10, 31)
+    cutoff_interval = timedelta(days=30)
+    utc_starttime = now - cutoff_interval
 
     async def main():
         sum_of_balances_latest = await get_sum_of_depository_balances_latest(
-            client, user_uuid, now
+            api_client=client,
+            user_uuid=user_uuid,
+            utc_starttime=utc_starttime,
+            utc_endtime=now,
         )
         print(sum_of_balances_latest)
     asyncio.run(main())
