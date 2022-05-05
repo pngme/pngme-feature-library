@@ -25,41 +25,41 @@ async def get_sum_of_minimum_balances(
         Sum of minimum balance observed for all depository accounts, in a given time window.
         If balance information was not observed, it returns None.
     """
-
+    # STEP 1: get a list of all institutions for the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
     # subset to only fetch data for institutions known to contain depository-type accounts for the user
-    institutions_w_depository = [
-        inst for inst in institutions if "depository" in inst.account_types
-    ]
-
-    inst_coroutines = [
-        api_client.balances.get(
-            user_uuid=user_uuid,
-            institution_id=institution.institution_id,
-            utc_starttime=utc_starttime,
-            utc_endtime=utc_endtime,
-            account_types=["depository"],
+    institutions_w_depository = []
+    for inst in institutions:
+        if "depository" in inst.account_types:
+            institutions_w_depository.append(inst)
+    
+    # STEP 2: get a list of all balances for each institution
+    inst_coroutines = []
+    for inst in institutions_w_depository:
+        inst_coroutines.append(
+            api_client.balances.get(
+                user_uuid=user_uuid,
+                institution_id=inst.institution_id,
+                utc_starttime=utc_starttime,
+                utc_endtime=utc_endtime,
+                account_types=["depository"],
         )
-        for institution in institutions_w_depository
-    ]
+    )
 
-    r = await asyncio.gather(*inst_coroutines)
-    record_list = []
-    for ix, inst_list in enumerate(r):
+    balances_per_institution = await asyncio.gather(*inst_coroutines)
+    balances_flattened = []
+    for ix, balances in enumerate(balances_per_institution):
         institution_id = institutions[ix].institution_id
         # We append the institution_id to each record so that we can
         # group the records by institution_id and account_id
-        record_list.extend(
-            [
-                dict(transaction, institution_id=institution_id)
-                for transaction in inst_list
-            ]
-        )
+        for balance in balances:
+            balances_flattened.append(dict(balance, institution_id=institution_id))
+        
 
     # We only care about the minimum balance observed for each account of each institution
     min_balances = {}
-    for record in record_list:
+    for record in balances_flattened:
         key = (record["institution_id"], record["account_id"])
         if key not in min_balances:
             min_balances[key] = record["balance"]

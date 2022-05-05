@@ -29,42 +29,39 @@ async def get_sum_of_debits(
         utc_endtime: the UTC time to end the time window
 
     Returns:
-        the sum total of all debit transaction amounts over the predefined ranges.
-            If there are no debit transactions for a given period, returns None
+        the sum total of all debit transaction amounts over the time window
+            If there are no debit transactions for a given period, returns zero
     """
+    # STEP 1: get a list of all institutions for the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
     # subset to only fetch data for institutions known to contain depository-type accounts for the user
-    institutions_w_depository = [
-        inst for inst in institutions if "depository" in inst.account_types
-    ]
+    institutions_w_depository = []
+    for inst in institutions:
+        if "depository" in inst.account_types:
+            institutions_w_depository.append(inst)
 
-    # API call including the account type filter so only "depository" transactions are returned if they exist
-    inst_coroutines = [
-        api_client.transactions.get(
+    # STEP 2: get a list of all transactions for each institution
+    inst_coroutines = []
+    for inst in institutions_w_depository:
+        inst_coroutines.append(
+            api_client.transactions.get(
             user_uuid=user_uuid,
-            institution_id=institution.institution_id,
+            institution_id=inst.institution_id,
             utc_starttime=utc_starttime,
             utc_endtime=utc_time,
             account_types=["depository"],
         )
-        for institution in institutions_w_depository
-    ]
+    )
 
-    r = await asyncio.gather(*inst_coroutines)
+    transactions_per_institution = await asyncio.gather(*inst_coroutines)
 
-    # now we aggregate the results from each institution into a single list
-    record_list = []
-    for inst_lst in r:
-        record_list.extend([dict(transaction) for transaction in inst_lst])
-
-    # now we sum the transaction amounts in each time window
-    amount = None
-
-    for r in record_list:
-        if r["impact"] == "DEBIT":
-            if r["ts"] >= utc_starttime.timestamp() and r["ts"] < utc_endtime.timestamp():
-                amount = _update_total(r["amount"], amount)
+    # STEP 3: now we sum up all the amounts of debit transactions for each institution
+    amount = 0
+    for transactions in transactions_per_institution:
+        for transaction in transactions:
+            if transaction.impact == "DEBIT" and transaction.amount is not None:
+                amount += transaction.amount
 
     return amount
 
