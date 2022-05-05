@@ -50,12 +50,12 @@ async def get_count_institutions_with_open_loans(
             )
         )
 
-    r = await asyncio.gather(*alerts_coroutines)
+    alerts_per_institution = await asyncio.gather(*alerts_coroutines)
 
     # STEP 3: count number of institutions that have 1 or more alert records with LoanApproved or LoanDisbursed label
     count_institution_with_open_loans = 0
-    for institution_alerts in r:
-        if len(institution_alerts) > 0:
+    for alerts in alerts_per_institution:
+        if len(alerts) > 0:
             count_institution_with_open_loans += 1
 
     return count_institution_with_open_loans

@@ -54,14 +54,12 @@ async def get_sum_of_loan_repayments(
 
     transactions_per_institution = await asyncio.gather(*inst_coroutines)
     
-    # STEP 3: We flatten the lists of transactions into a single list of transactions
-    transactions_flattened = []
-    for inst_lst in transactions_per_institution:
-        transactions_flattened.extend([dict(transaction) for transaction in inst_lst])
-
+    # STEP 3: We add up all the credit transactions for each institution
     repayments_sum = 0
-    for record in transactions_flattened:
-        repayments_sum += record["amount"]
+    for transactions in transactions_per_institution:
+        for transaction in transactions:
+            if transaction.impact == "CREDIT":
+                repayments_sum += transaction.amount
            
     return repayments_sum
 
