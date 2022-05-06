@@ -58,14 +58,14 @@ async def get_average_end_of_day_balance(
             )
         )
 
-    r = await asyncio.gather(*inst_coroutines)
+    balances_per_institution = await asyncio.gather(*inst_coroutines)
 
     # STEP 4: flatten all balances from all institutions
     record_list = []
-    for ix, inst_list in enumerate(r):
+    for ix, balances in enumerate(balances_per_institution):
         institution_id = institutions[ix].institution_id
-        for transaction in inst_list:
-            record_list.append(dict(transaction, institution_id=institution_id))
+        for balance in balances:
+            record_list.append(dict(balance, institution_id=institution_id))
             
     # if no data is present, consider the sum of balances to be non-existing 
     if len(record_list) == 0:
