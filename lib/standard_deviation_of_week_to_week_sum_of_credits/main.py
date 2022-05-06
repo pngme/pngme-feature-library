@@ -45,15 +45,17 @@ async def get_standard_deviation_of_week_to_week_sum_of_credits(
             )
         )
 
-    record_list_by_institution = await asyncio.gather(*coroutines)
+    transactions_by_institution = await asyncio.gather(*coroutines)
+
     # if no data available for the user, return None
-    if len(record_list_by_institution) == 0:
+    if len(transactions_by_institution) == 0:
         return None
 
     record_list_flattened = []
-    for record_list in record_list_by_institution:
-        for record in record_list:
-            record_list_flattened.append(dict(record))
+    for transactions in transactions_by_institution:
+        for transaction in transactions:
+            # We cast as dictionary so we can generate a dataframe easily
+            record_list_flattened.append(dict(transaction))
 
     record_df = pd.DataFrame(record_list_flattened)
     credit_df = record_df[(record_df.impact == "CREDIT")]
@@ -63,7 +65,7 @@ async def get_standard_deviation_of_week_to_week_sum_of_credits(
         return None
 
     credit_df.insert(0, "date", pd.to_datetime(credit_df.ts, unit="s"))
-    std = credit_df.set_index("date").resample("W")["amount"].sum().std()
+    std = credit_df.set_index("date").resample("W").amount.sum().std()
     return std
 
 

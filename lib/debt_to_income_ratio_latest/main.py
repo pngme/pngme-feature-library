@@ -26,6 +26,8 @@ async def get_debt_to_income_ratio_latest(
     Returns:
         Ratio of debt / income for the given user. Returning 0 would correspond to a 0 debt amount,
         and 'inf' would correspond to a 0 income amount.
+
+        None means that there are no loan balances nor credit transactions for the given time period.
     """
     
     # STEP 1: fetch list of institutions belonging to the user
@@ -76,13 +78,11 @@ async def get_debt_to_income_ratio_latest(
     loan_records_list = []
     for ix, balance_records in enumerate(loan_balances_by_institution):
         institution_id = institutions[ix].institution_id
-        for balance_record in balance_records:
-            loan_records_list.append(
-                dict(
-                    balance_record,
-                    institution_id=institution_id,
-                )
-            )
+        for balance in balance_records:
+            balance_dict = dict(balance)
+            balance_dict["institution_id"] = institution_id
+
+            loan_records_list.append(balance_dict)
 
     # STEP 5: Execute depository requests in parallel
     depository_transactions_by_institution = await asyncio.gather(*depository_inst_coroutines)
@@ -92,6 +92,8 @@ async def get_debt_to_income_ratio_latest(
     for inst_lst in depository_transactions_by_institution:
         for transaction_record in inst_lst:
             if transaction_record.impact == "CREDIT":
+                # As we needed to cast the balance records as dict, we do the same
+                # here so calculations do not mix dictionaries and objects for easier reading
                 depository_credit_records_list.append(dict(transaction_record))
 
     # STEP 5.2: Early exit for edge cases

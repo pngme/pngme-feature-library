@@ -56,7 +56,10 @@ async def get_sum_of_loan_balances_latest(
     for ix, balances in enumerate(balances_by_institution):
         institution_id = institutions[ix].institution_id
         for balance in balances:
-            balances_flattened.append(dict(balance, institution_id=institution_id))
+            balance_dict = dict(balance)
+            balance_dict["institution_id"] = institution_id
+
+            balances_flattened.append(balance_dict)
     
     # STEP 5: Here we sort by timestamp so latest balances are on top
     balances_flattened = sorted(balances_flattened, key=lambda x: x["ts"], reverse=True)

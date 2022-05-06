@@ -56,12 +56,15 @@ async def get_sum_of_depository_balances_latest(
     for ix, inst_list in enumerate(balances_by_institution):
         institution_id = institutions[ix].institution_id
         for balance in inst_list:
-            balances_flattened.append(dict(balance, institution_id=institution_id))
-    
-    # STEP 5: Here we sort by timestamp so latest balances are on top
-    balances_flattened = sorted(balances_flattened, key=lambda x: x["ts"], reverse=True)
+            balance_dict = dict(balance)
+            balance_dict["institution_id"] = institution_id
 
-    # STEP 6: Then we loop through all balances per institution and account and store the latest balance
+            balances_flattened.append(balance_dict)
+    
+    # STEP 4: Here we sort by timestamp so latest balances are on top
+    balances_flattened = sorted(balances_flattened, key=lambda x: x["ts"], reverse=True)
+    
+    # STEP 5: Then we loop through all balances per institution and account and store the latest balance
     latest_balances = {}
     for loan_record in balances_flattened:
         key = (loan_record["institution_id"], loan_record["account_id"])
@@ -69,7 +72,7 @@ async def get_sum_of_depository_balances_latest(
             # As we go top-down, we only need to store the first balance we found for each institution+account
             latest_balances[key] = loan_record["balance"]
     
-    # STEP 7: Finally, we can sum all the balances
+    # STEP 6: Finally, we can sum all the balances
     sum_of_balances_latest = sum(latest_balances.values())
 
     return sum_of_balances_latest
