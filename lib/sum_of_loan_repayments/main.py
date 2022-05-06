@@ -30,33 +30,38 @@ async def get_sum_of_loan_repayments(
     Returns:
         the sum total of all loan repayments (i.e. credit transaction amounts across all loan accounts) over the predefined ranges.
     """
+    # STEP 1: get a list of all institutions for the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
     # subset to only fetch data for institutions known to contain loan-type accounts for the user
-    institutions_w_loan = [
-        inst for inst in institutions if "loan" in inst.account_types
-    ]
+    institutions_w_loan = []
+    for inst in institutions:
+        if "loan" in inst.account_types:
+            institutions_w_loan.append(inst)
 
-    # Constructs a dataframe that contains transactions from all institutions for the user
-    record_list = []
-    inst_coroutines = [
-        api_client.transactions.get(
-            user_uuid=user_uuid,
-            institution_id=institution.institution_id,
-            utc_starttime=utc_starttime,
-            utc_endtime=utc_endtime,
-            account_types=["loan"],
+    # STEP 2: get a list of all transactions for each institution
+    inst_coroutines = []
+    for inst in institutions_w_loan:
+        inst_coroutines.append(
+            api_client.transactions.get(
+                user_uuid=user_uuid,
+                institution_id=inst.institution_id,
+                utc_starttime=utc_starttime,
+                utc_endtime=utc_endtime,
+                account_types=["loan"],
+            )
         )
-        for institution in institutions_w_loan
-    ]
-    r = await asyncio.gather(*inst_coroutines)
-    for inst_lst in r:
-        record_list.extend([dict(transaction) for transaction in inst_lst])
+
+    transactions_per_institution = await asyncio.gather(*inst_coroutines)
+    
+    # STEP 3: We flatten the lists of transactions into a single list of transactions
+    transactions_flattened = []
+    for inst_lst in transactions_per_institution:
+        transactions_flattened.extend([dict(transaction) for transaction in inst_lst])
 
     repayments_sum = 0
-    for record in record_list:
-        if (record["impact"] == "CREDIT" and record["ts"] >= utc_starttime.timestamp() and record["ts"] < utc_endtime.timestamp()):
-            repayments_sum += record["amount"]
+    for record in transactions_flattened:
+        repayments_sum += record["amount"]
            
     return repayments_sum
 

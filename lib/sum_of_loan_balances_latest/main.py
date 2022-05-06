@@ -26,44 +26,54 @@ async def get_sum_of_loan_balances_latest(
     Returns:
         The latest balance summed across all loan accounts
     """
-
+    
+    # STEP 1: get a list of all institutions for the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
     utc_starttime = utc_time - cutoff_interval
 
     # subset to only fetch data for institutions known to contain loan-type accounts for the user
-    institutions_w_loan = [inst for inst in institutions if "loan" in inst.account_types]
+    institutions_w_loan = []
+    for inst in institutions:
+        if "loan" in inst.account_types:
+            institutions_w_loan.append(inst)
 
-    inst_coroutines = [
-        api_client.balances.get(
-            user_uuid=user_uuid,
-            institution_id=institution.institution_id,
-            utc_starttime=utc_starttime,
-            utc_endtime=utc_time,
-            account_types=["loan"],
+    # STEP 2: get a list of all balances for each institution
+    inst_coroutines = []
+    for inst in institutions_w_loan:
+        inst_coroutines.append(
+            api_client.balances.get(
+                user_uuid=user_uuid,
+                institution_id=inst.institution_id,
+                utc_starttime=utc_starttime,
+                utc_endtime=utc_time,
+                account_types=["loan"],
         )
-        for institution in institutions_w_loan
-    ]
+    )
 
-    r = await asyncio.gather(*inst_coroutines)
-    loan_records_list = []
-    for ix, inst_list in enumerate(r):
+    balances_per_institution = await asyncio.gather(*inst_coroutines)
+
+    # STEP 3: We flatten the lists of balances into a single list of balances
+    balances_flattened = []
+    for ix, balances in enumerate(balances_per_institution):
         institution_id = institutions[ix].institution_id
-        loan_records_list.extend([dict(transaction, institution_id=institution_id) for transaction in inst_list])
+        for balance in balances:
+            balances_flattened.append(dict(balance, institution_id=institution_id))
     
-    # Here we sort by timestamp so latest balances are on top
-    loan_records_list = sorted(loan_records_list, key=lambda x: x["ts"], reverse=True)
+    # STEP 5: Here we sort by timestamp so latest balances are on top
+    balances_flattened = sorted(balances_flattened, key=lambda x: x["ts"], reverse=True)
 
-    # Then we loop through all balances per institution and account and store the latest balance
+    # STEP 6: Then we loop through all balances per institution and account and store the latest balance
     latest_balances = {}
-    for loan_record in loan_records_list:
+    for loan_record in balances_flattened:
         key = (loan_record["institution_id"], loan_record["account_id"])
         if key not in latest_balances:
+            # As we go top-down, we only need to store the first balance we found for each institution+account
             latest_balances[key] = loan_record["balance"]
     
-    # Finally, we can sum all the balances
-    sum_of_loan_balances_latest = sum(latest_balances.values())
+    # STEP 7: Finally, we can sum all the balances
+    sum_of_balances_latest = sum(latest_balances.values())
 
-    return sum_of_loan_balances_latest
+    return sum_of_balances_latest
 
 if __name__ == "__main__":
     # Mercy Otingo, mercy@pngme.demo, 234112312
