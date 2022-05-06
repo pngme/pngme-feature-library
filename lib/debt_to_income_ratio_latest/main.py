@@ -121,6 +121,12 @@ async def get_debt_to_income_ratio_latest(
     for credit in depository_credit_records_list:
         sum_of_depository_credit_transactions += credit["amount"]
 
+    ## Early return if sum of transactions is zero
+    ### (This is an extremely rare case where all credit transactions add up to zero,
+    ###  which could happen if parsed amounts are zero or if the institution has
+    ###  negative credit transactions)
+    if sum_of_depository_credit_transactions == 0:
+        return float('inf')
     # STEP 10: Compute debt to income ratio
     ratio = sum_of_loan_balances_latest / sum_of_depository_credit_transactions
     return ratio
