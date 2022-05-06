@@ -40,11 +40,11 @@ async def get_count_loan_repayment_events(
             )
         )
 
-    alerts_per_institution = await asyncio.gather(*alerts_coroutines)
+    alerts_by_institution = await asyncio.gather(*alerts_coroutines)
 
     # STEP 3: flatten alerts into a single list
     all_alerts = []
-    for alerts_list in alerts_per_institution:
+    for alerts_list in alerts_by_institution:
         for alert in alerts_list:
             all_alerts.append(alert)
 

@@ -70,11 +70,11 @@ async def get_debt_to_income_ratio_latest(
         )
 
     # STEP 4: Execute loan requests in parallel
-    loan_balances_per_institution = await asyncio.gather(*loan_inst_coroutines)
+    loan_balances_by_institution = await asyncio.gather(*loan_inst_coroutines)
     
     # STEP 4.1: Include institution id to each loan balance record so we can sum the balance for each one
     loan_records_list = []
-    for ix, balance_records in enumerate(loan_balances_per_institution):
+    for ix, balance_records in enumerate(loan_balances_by_institution):
         institution_id = institutions[ix].institution_id
         for balance_record in balance_records:
             loan_records_list.append(
@@ -85,11 +85,11 @@ async def get_debt_to_income_ratio_latest(
             )
 
     # STEP 5: Execute depository requests in parallel
-    depository_transactions_per_institution = await asyncio.gather(*depository_inst_coroutines)
+    depository_transactions_by_institution = await asyncio.gather(*depository_inst_coroutines)
 
     # STEP 5.1: Filter out transactions that are not credit transactions
     depository_credit_records_list = []
-    for inst_lst in depository_transactions_per_institution:
+    for inst_lst in depository_transactions_by_institution:
         for transaction_record in inst_lst:
             if transaction_record.impact == "CREDIT":
                 depository_credit_records_list.append(dict(transaction_record))

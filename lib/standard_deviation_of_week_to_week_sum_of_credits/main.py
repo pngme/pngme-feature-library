@@ -45,13 +45,13 @@ async def get_standard_deviation_of_week_to_week_sum_of_credits(
             )
         )
 
-    record_list_per_institution = await asyncio.gather(*coroutines)
+    record_list_by_institution = await asyncio.gather(*coroutines)
     # if no data available for the user, return None
-    if len(record_list_per_institution) == 0:
+    if len(record_list_by_institution) == 0:
         return None
 
     record_list_flattened = []
-    for record_list in record_list_per_institution:
+    for record_list in record_list_by_institution:
         for record in record_list:
             record_list_flattened.append(dict(record))
 

@@ -47,9 +47,9 @@ async def get_sum_of_minimum_balances(
         )
     )
 
-    balances_per_institution = await asyncio.gather(*inst_coroutines)
+    balances_by_institution = await asyncio.gather(*inst_coroutines)
     balances_flattened = []
-    for ix, balances in enumerate(balances_per_institution):
+    for ix, balances in enumerate(balances_by_institution):
         institution_id = institutions[ix].institution_id
         # We append the institution_id to each record so that we can
         # group the records by institution_id and account_id

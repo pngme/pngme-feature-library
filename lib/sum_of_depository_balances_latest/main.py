@@ -49,11 +49,11 @@ async def get_sum_of_depository_balances_latest(
         )
     )
 
-    balances_per_institution = await asyncio.gather(*inst_coroutines)
+    balances_by_institution = await asyncio.gather(*inst_coroutines)
 
     # STEP 3: We flatten the lists of balances into a single list of balances
     balances_flattened = []
-    for ix, inst_list in enumerate(balances_per_institution):
+    for ix, inst_list in enumerate(balances_by_institution):
         institution_id = institutions[ix].institution_id
         for balance in inst_list:
             balances_flattened.append(dict(balance, institution_id=institution_id))

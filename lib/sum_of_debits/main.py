@@ -54,11 +54,11 @@ async def get_sum_of_debits(
         )
     )
 
-    transactions_per_institution = await asyncio.gather(*inst_coroutines)
+    transactions_by_institution = await asyncio.gather(*inst_coroutines)
 
     # STEP 3: now we sum up all the amounts of debit transactions for each institution
     amount = 0
-    for transactions in transactions_per_institution:
+    for transactions in transactions_by_institution:
         for transaction in transactions:
             if transaction.impact == "DEBIT" and transaction.amount is not None:
                 amount += transaction.amount
