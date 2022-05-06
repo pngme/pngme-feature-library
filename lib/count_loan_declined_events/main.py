@@ -23,37 +23,38 @@ async def get_count_loan_declined_events(
     Returns:
         count of LoanDeclined events within the given time window
     """
+    # STEP 1: fetch list of institutions belonging to the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
     # subset to only fetch data for institutions known to contain loan-type accounts for the user
-    institutions_w_loan = [
-        inst for inst in institutions if "loan" in inst.account_types
-    ]
+    institutions_w_loan = []
+    for inst in institutions:
+        if "loan" in inst.account_types:
+            institutions_w_loan.append(inst)
 
-    inst_coroutines = [
-        api_client.alerts.get(
-            user_uuid=user_uuid,
-            institution_id=institution.institution_id,
-            utc_starttime=utc_starttime,
-            utc_endtime=utc_endtime,
-            labels=["LoanDeclined"],
+    # STEP 2: fetch alert records for all institutions with LoanDeclined events
+    alerts_coroutines = []
+    for inst_w_loan in institutions_w_loan:
+        alerts_coroutines.append(
+            api_client.alerts.get(
+                user_uuid=user_uuid,
+                institution_id=inst_w_loan.institution_id,
+                utc_starttime=utc_starttime,
+                utc_endtime=utc_endtime,
+                labels=["LoanDeclined"],
+            )
         )
-        for institution in institutions_w_loan
-    ]
 
-    r = await asyncio.gather(*inst_coroutines)
+    alerts_per_institution = await asyncio.gather(*alerts_coroutines)
 
-    record_list = []
-    for inst_list in r:
-        record_list.extend([dict(alert) for alert in inst_list])
+    # STEP 3: flatten alerts into a single list
+    all_alerts = []
+    for alerts_list in alerts_per_institution:
+        for alert in alerts_list:
+            all_alerts.append(alert)
 
-
-    count_loan_declined_events = 0
-    for alert in record_list:
-        if alert["ts"] >= utc_starttime.timestamp() and alert["ts"] < utc_endtime.timestamp():
-            count_loan_declined_events += 1
-
-    return count_loan_declined_events
+    # STEP 4: count number of alerts
+    return len(all_alerts)
 
 
 if __name__ == "__main__":
@@ -63,7 +64,7 @@ if __name__ == "__main__":
     token = os.environ["PNGME_TOKEN"]
     client = AsyncClient(token)
 
-    utc_endtime = datetime(2021, 10, 1)
+    utc_endtime = datetime(2021, 11, 1)
     utc_starttime = utc_endtime - timedelta(days=30)
 
     async def main():

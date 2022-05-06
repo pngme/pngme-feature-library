@@ -24,31 +24,33 @@ async def get_count_loan_repaid_events(
     Returns:
         count of LoanRepaid events within the given time window
     """
+    # STEP 1: fetch list of institutions belonging to the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
-    inst_coroutines = [
-        api_client.alerts.get(
-            user_uuid=user_uuid,
-            institution_id=institution.institution_id,
-            utc_starttime=utc_starttime,
-            utc_endtime=utc_endtime,
-            labels=["LoanRepaid"],
+    # STEP 2: fetch alert records for all institutions with LoanRepaid events
+    alerts_coroutines = []
+    for inst in institutions:
+        alerts_coroutines.append(
+            api_client.alerts.get(
+                user_uuid=user_uuid,
+                institution_id=inst.institution_id,
+                utc_starttime=utc_starttime,
+                utc_endtime=utc_endtime,
+                labels=["LoanRepaid"],
+            )
         )
-        for institution in institutions
-    ]
 
-    r = await asyncio.gather(*inst_coroutines)
+    alerts_per_institution = await asyncio.gather(*alerts_coroutines)
 
-    record_list = []
-    for inst_list in r:
-        record_list.extend([dict(alert) for alert in inst_list])
+    # STEP 3: flatten alerts into a single list
+    all_alerts = []
+    for alerts_list in alerts_per_institution:
+        for alert in alerts_list:
+            all_alerts.append(alert)
 
-    count_loan_repaid_events = 0
-    for alert in record_list:
-        if alert["ts"] >= utc_starttime.timestamp() and alert["ts"] < utc_endtime.timestamp():
-            count_loan_repaid_events += 1
+    # STEP 4: count number of alerts
+    return len(all_alerts)
 
-    return count_loan_repaid_events
 
 
 if __name__ == "__main__":
