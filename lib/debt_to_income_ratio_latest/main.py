@@ -25,68 +25,75 @@ async def get_debt_to_income_ratio_latest(
 
     Returns:
         Ratio of debt / income for the given user. Returning 0 would correspond to a 0 debt amount,
-        and Inf would correspond to a 0 income amount.
+        and 'inf' would correspond to a 0 income amount.
     """
-
+    
+    # STEP 1: fetch list of institutions belonging to the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
-    utc_starttime = utc_time - cutoff_interval
+    utc_starttime = utc_time - cutoff_interval    
 
     # subset to only fetch data for institutions known to contain loan-type accounts for the user
-    institutions_w_loan = [
-        inst for inst in institutions if "loan" in inst.account_types
-    ]
-
-    loan_inst_coroutines = [
-        api_client.balances.get(
-            user_uuid=user_uuid,
-            institution_id=institution.institution_id,
-            utc_starttime=utc_starttime,
-            utc_endtime=utc_time,
-            account_types=["loan"],
+    institutions_w_loan = []
+    for inst in institutions:
+        if "loan" in inst.account_types:
+            institutions_w_loan.append(inst)
+    
+    # STEP 2: Prepare a list of tasks to fetch balances for each institution with loan accounts
+    loan_inst_coroutines = []
+    for institution in institutions_w_loan:
+        loan_inst_coroutines.append(
+            api_client.balances.get(
+                user_uuid=user_uuid,
+                institution_id=institution.institution_id,
+                utc_starttime=utc_starttime,
+                utc_endtime=utc_time,
+                account_types=["loan"],
+            )
         )
-        for institution in institutions_w_loan
-    ]
 
     # subset to only fetch data for institutions known to contain depository-type accounts for the user
-    institutions_w_depository = [
-        inst for inst in institutions if "depository" in inst.account_types
-    ]
+    institutions_w_depository = []
+    for inst in institutions:
+        if "depository" in inst.account_types:
+            institutions_w_depository.append(inst)
 
-    depository_inst_coroutines = [
-        api_client.transactions.get(
-            user_uuid=user_uuid,
-            institution_id=institution.institution_id,
-            utc_starttime=utc_starttime,
-            utc_endtime=utc_time,
-            account_types=["depository"],
+    # STEP 3: Prepare a list of tasks to fetch balances for each institution with depository accounts
+    depository_inst_coroutines = []
+    for institution in institutions_w_depository:
+        depository_inst_coroutines.append(
+            api_client.transactions.get(
+                user_uuid=user_uuid,
+                institution_id=institution.institution_id,
+                utc_starttime=utc_starttime,
+                utc_endtime=utc_time,
+                account_types=["depository"],
+            )
         )
-        for institution in institutions_w_depository
-    ]
 
-    response = await asyncio.gather(*loan_inst_coroutines, *depository_inst_coroutines)
-    loan_balances = response[: len(loan_inst_coroutines)]
-    depository_transactions = response[len(loan_inst_coroutines) :]
-
+    # STEP 4: Execute loan requests in parallel
+    loan_balances_per_institution = await asyncio.gather(*loan_inst_coroutines)
+    
+    # STEP 4.1: Include institution id to each loan balance record so we can sum the balance for each one
     loan_records_list = []
-    depository_credit_records_list = []
-
-    for ix, inst_list in enumerate(loan_balances):
+    for ix, balance_records in enumerate(loan_balances_per_institution):
         institution_id = institutions[ix].institution_id
-        loan_records_list.extend(
-            [
-                dict(transaction, institution_id=institution_id)
-                for transaction in inst_list
-            ]
-        )
+        for balance_record in balance_records:
+            loan_records_list.append(
+                dict(
+                    balance_record,
+                    institution_id=institution_id,
+                )
+            )
 
-    for inst_lst in depository_transactions:
-        depository_credit_records_list.extend(
-            [
-                dict(transaction)
-                for transaction in inst_lst
-                if transaction.impact == "CREDIT"
-            ]
-        )
+    # STEP 5: Execute depository requests in parallel
+    depository_transactions_per_institution = await asyncio.gather(*depository_inst_coroutines)
+
+    # STEP 5.1: Filter out transactions that are not credit transactions
+    depository_credit_records_list = []
+    for inst_lst in depository_transactions_per_institution:
+        for transaction_record in inst_lst:
+            if transaction_record.impact == "CREDIT":
+                depository_credit_records_list.append(dict(transaction_record))
 
     # if no data available for the user, assume sum of loan balances to be zero
     if len(loan_records_list) == 0:
@@ -96,25 +103,31 @@ async def get_debt_to_income_ratio_latest(
     if len(depository_credit_records_list) == 0:
         return float("inf")
 
-    # Here we sort by timestamp so latest balances are on top
+    # STEP 6: Here we sort by timestamp so latest balances are on top
     loan_records_list = sorted(loan_records_list, key=lambda x: x["ts"], reverse=True)
 
-    # Then we loop through all balances per institution and account and store the latest balance
+    # STEP 7: Then we loop through all balances per institution and account and store the latest balance
     latest_balances = {}
     for loan_record in loan_records_list:
         key = (loan_record["institution_id"], loan_record["account_id"])
         if key not in latest_balances:
             latest_balances[key] = loan_record["balance"]
     
-    # Finally, we can sum all the balances
+    # STEP 8: Sum all the balances
     sum_of_loan_balances_latest = sum(latest_balances.values())
 
-    # Sum of credit transactions across all depository accounts
+    # STEP 9: Sum of credit transactions across all depository accounts
     sum_of_depository_credit_transactions = 0
     for credit in depository_credit_records_list:
         sum_of_depository_credit_transactions += credit["amount"]
 
-    # Compute debt to income ratio
+    ## Early return if sum of transactions is zero
+    ### (This is an extremely rare case where all credit transactions add up to zero,
+    ###  which could happen if parsed amounts are zero or if the institution has
+    ###  negative credit transactions)
+    if sum_of_depository_credit_transactions == 0:
+        return float('inf')
+    # STEP 10: Compute debt to income ratio
     ratio = sum_of_loan_balances_latest / sum_of_depository_credit_transactions
     return ratio
 

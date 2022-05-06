@@ -25,12 +25,14 @@ def get_net_cash_flow(
         the sum total of all credit transaction amounts
         None if there is no transaction data
     """
+    # STEP 1: fetch list of institutions belonging to the user
     institutions = api_client.institutions.get(user_uuid=user_uuid)
 
     # subset to only fetch data for institutions known to contain depository-type accounts for the user
-    institutions_w_depository = [
-        inst for inst in institutions if "depository" in inst.account_types
-    ]
+    institutions_w_depository = []
+    for inst in institutions:
+        if "depository" in inst.account_types:
+            institutions_w_depository.append(inst)
 
     # Constructs a dataframe that contains transactions from all accounts for the user
     record_list = []
@@ -43,7 +45,8 @@ def get_net_cash_flow(
             utc_endtime=utc_endtime,
             account_types=["depository"],
         )
-        record_list.extend([dict(transaction) for transaction in transactions])
+        for transaction in transactions:
+            record_list.append(dict(transaction))
 
     # if no data available for the user, return None
     if len(record_list) == 0:
