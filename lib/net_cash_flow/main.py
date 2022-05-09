@@ -3,14 +3,13 @@
 import asyncio
 import os
 from datetime import datetime, timedelta
-from typing import Optional
 
 from pngme.api import AsyncClient
 
 
 async def get_net_cash_flow(
     api_client: AsyncClient, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
-) -> Optional[float]:
+) -> float:
     """Compute the net cash flow for a user over a given period.
 
     No currency conversions are performed. Net cash flow is calculated by
@@ -24,7 +23,6 @@ async def get_net_cash_flow(
         utc_endtime: the UTC time to end the time window
     Returns:
         the net cash flow amount (differencing cash-in (credit) and cash-out (debit) transactions)
-        None if there is no transaction data
     """
     # STEP 1: fetch list of institutions belonging to the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
@@ -47,9 +45,10 @@ async def get_net_cash_flow(
             utc_endtime=utc_endtime,
             account_types=["depository"],
         )
-        )
+    )
     transactions_by_institution = await asyncio.gather(*inst_coroutines)
 
+    # STEP 3: Compute the net cash flow as the difference between cash-in and cash-out
     for transactions in transactions_by_institution:
         for transaction in transactions:
             if transaction.impact == "CREDIT":
@@ -57,11 +56,7 @@ async def get_net_cash_flow(
             elif transaction.impact == "DEBIT":
                 cash_out_amount += transaction.amount
 
-    # If there are no transactions, return None
-    if cash_in_amount == 0 and cash_out_amount == 0:
-        return None
 
-    # STEP 3: Compute the net cash flow as the difference between cash-in and cash-out
     total_net_cash_flow = cash_in_amount - cash_out_amount
 
     return total_net_cash_flow
