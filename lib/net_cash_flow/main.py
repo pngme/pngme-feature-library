@@ -23,7 +23,7 @@ async def get_net_cash_flow(
         utc_starttime: the UTC time to start the time window
         utc_endtime: the UTC time to end the time window
     Returns:
-        the sum total of all credit transaction amounts
+        the net cash flow amount (differencing cash-in (credit) and cash-out (debit) transactions)
         None if there is no transaction data
     """
     # STEP 1: fetch list of institutions belonging to the user
