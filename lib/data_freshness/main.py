@@ -25,11 +25,12 @@ async def get_data_freshness(
     """
 
     # STEP 1: fetch list of institutions belonging to the user
-
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
     # STEP 2: get a list of all transactions for each institution
     transaction_inst_coroutine = []
+    balance_inst_coroutines = []
+    alerts_inst_coroutines = []
     for inst in institutions:
         transaction_inst_coroutine.append(
             api_client.transactions.get(
@@ -40,12 +41,6 @@ async def get_data_freshness(
                 page=1,
             )
         )
-
-    transactions_per_institution = await asyncio.gather(*transaction_inst_coroutine)
-
-    # STEP b2: get a list of all balances for each institution
-    balance_inst_coroutines = []
-    for inst in institutions:
         balance_inst_coroutines.append(
             api_client.balances.get(
                 user_uuid=user_uuid,
@@ -55,12 +50,6 @@ async def get_data_freshness(
                 page=1,
             )
         )
-
-    balances_per_institution = await asyncio.gather(*balance_inst_coroutines)
-
-    # STEP c2: get a list of all alerts for each institution
-    alerts_inst_coroutines = []
-    for inst in institutions:
         alerts_inst_coroutines.append(
             api_client.balances.get(
                 user_uuid=user_uuid,
@@ -71,10 +60,12 @@ async def get_data_freshness(
             )
         )
 
+    transactions_per_institution = await asyncio.gather(*transaction_inst_coroutine)
+    balances_per_institution = await asyncio.gather(*balance_inst_coroutines)
     alerts_per_institution = await asyncio.gather(*alerts_inst_coroutines)
 
 
-    # STEP 3: flatten all balances, transactions, and alerts from all institutions
+    # STEP 3: flatten all balances, transactions, and alerts from all institutions, and get most recent time
     transactions_flattened = []
     for ix, transactions in enumerate(transactions_per_institution):
         institution_id = institutions[ix].institution_id
@@ -95,13 +86,11 @@ async def get_data_freshness(
             alerts_flattened.append(dict(alert, institution_id=institution_id))
 
 
-    # STEP 4: Here we sort by timestamp so latest transactions, balances, and alerts are on top and keep the first entry
     transactions_sorted = sorted(transactions_flattened, key=lambda x: x["ts"], reverse=True)
     balances_sorted = sorted(balances_flattened, key=lambda x: x["ts"], reverse=True)
     alerts_sorted = sorted(alerts_flattened, key=lambda x: x["ts"], reverse=True)
 
 
-    # STEP 5: Get timestamp of first transaction, balance, alert
     if not transactions_sorted:
         transactions_ts_recent = 0
     else:
@@ -117,7 +106,6 @@ async def get_data_freshness(
     else:
         alerts_ts_recent = alerts_sorted[0]["ts"]
 
-    # STEP 6: Finally, we can get the minimum of the data freshness (in days)
     most_recent_ts = max(transactions_ts_recent, balances_ts_recent, alerts_ts_recent)
     if most_recent_ts is None:
         data_freshness = None
