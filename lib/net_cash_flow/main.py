@@ -34,8 +34,9 @@ def get_net_cash_flow(
         if "depository" in inst.account_types:
             institutions_w_depository.append(inst)
 
-    # Constructs a dataframe that contains transactions from all accounts for the user
-    record_list = []
+    # STEP 2: Loop through all transactions adding the transactions
+    cash_in_amount = 0
+    cash_out_amount = 0
     for institution in institutions_w_depository:
         institution_id = institution.institution_id
         transactions = api_client.transactions.get(
@@ -46,25 +47,16 @@ def get_net_cash_flow(
             account_types=["depository"],
         )
         for transaction in transactions:
-            record_list.append(dict(transaction))
+            if transaction.impact == "CREDIT":
+                cash_in_amount += transaction.amount
+            elif transaction.impact == "DEBIT":
+                cash_out_amount += transaction.amount
 
-    # if no data available for the user, return None
-    if len(record_list) == 0:
+    # If there are no transactions, return None
+    if cash_in_amount == 0 and cash_out_amount == 0:
         return None
 
-    # Get the total cash-in (credit) amount over a period
-    cash_in_amount = 0
-    for r in record_list:
-        if r["impact"] == "CREDIT":
-            cash_in_amount += r["amount"]
-
-    # Get the total cash-out (debit) amount over a period
-    cash_out_amount = 0
-    for r in record_list:
-        if r["impact"] == "DEBIT":
-            cash_out_amount += r["amount"]
-
-    # Compute the net cash flow as the difference between cash-in and cash-out
+    # STEP 3: Compute the net cash flow as the difference between cash-in and cash-out
     total_net_cash_flow = cash_in_amount - cash_out_amount
 
     return total_net_cash_flow
