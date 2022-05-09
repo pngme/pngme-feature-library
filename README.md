@@ -9,7 +9,7 @@ A collection of code examples which generate modelling features for a mobile pho
 ## Features
 
 | Name                                                                                                            | Description                                                                                                                 |
-| --------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+|-----------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------|
 | [average_end_of_day_depository_balance](lib/average_end_of_day_depository_balance)                              | average end-of-day balance total across all depository accounts                                                             |
 | [average_end_of_day_loan_balance](lib/average_end_of_day_loan_balance)                                          | average end-of-day balance total across all loan accounts                                                                   |
 | [count_betting_and_lottery_events](lib/count_betting_and_lottery_events)                                        | count of betting and lottery events across all accounts                                                                     |
@@ -21,6 +21,7 @@ A collection of code examples which generate modelling features for a mobile pho
 | [count_loan_repayment_events](lib/count_loan_repayment_events)                                                  | count of loan repayment events across all accounts                                                                          |
 | [count_missed_payment_events](lib/count_missed_payment_events)                                                  | count of missed scheduled payment events across all accounts                                                                |
 | [count_overdraft_events](lib/count_overdraft_events)                                                            | count of overdraft events across all accounts                                                                               |
+| [data_freshness](lib/data_freshness)                                                               | Returns the time in minutes between utc_endtime and the most recent financial event or alert                                |
 | [debt_to_income_ratio_latest](lib/debt_to_income_ratio_latest)                                                  | ratio between the sum of balances across all loan accounts and sum of credit transactions across all depository accounts    |
 | [net_cash_flow](lib/net_cash_flow)                                                                              | net cash flow (inflow minus outflow) across all depository accounts                                                         |
 | [standard_deviation_of_week_to_week_sum_of_credits_0_84](lib/standard_deviation_of_week_to_week_sum_of_credits) | proxy for income consistency. standard deviation f week-to-week sum of credit across all depository accounts over 0-84 days |
