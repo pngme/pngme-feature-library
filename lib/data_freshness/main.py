@@ -70,41 +70,40 @@ async def get_data_freshness(
     for ix, transactions in enumerate(transactions_per_institution):
         institution_id = institutions[ix].institution_id
         for transaction in transactions:
-            transactions_flattened.append(
-                dict(transaction, institution_id=institution_id))
+            transactions_flattened.append(transaction)
 
     balances_flattened = []
     for ix, balances in enumerate(balances_per_institution):
         institution_id = institutions[ix].institution_id
         for balance in balances:
-            balances_flattened.append(dict(balance, institution_id=institution_id))
+            balances_flattened.append(balance)
     
     alerts_flattened = []
     for ix, alerts in enumerate(alerts_per_institution):
         institution_id = institutions[ix].institution_id
         for alert in alerts:
-            alerts_flattened.append(dict(alert, institution_id=institution_id))
+            alerts_flattened.append(alert)
 
 
-    transactions_sorted = sorted(transactions_flattened, key=lambda x: x["ts"], reverse=True)
-    balances_sorted = sorted(balances_flattened, key=lambda x: x["ts"], reverse=True)
-    alerts_sorted = sorted(alerts_flattened, key=lambda x: x["ts"], reverse=True)
+    transactions_sorted = sorted(transactions_flattened, key=lambda x: x.ts, reverse=True)
+    balances_sorted = sorted(balances_flattened, key=lambda x: x.ts, reverse=True)
+    alerts_sorted = sorted(alerts_flattened, key=lambda x: x.ts, reverse=True)
 
 
     if not transactions_sorted:
         transactions_ts_recent = 0
     else:
-        transactions_ts_recent = transactions_sorted[0]["ts"]
+        transactions_ts_recent = transactions_sorted[0].ts
         
     if not balances_sorted:
         balances_ts_recent = 0
     else:
-        balances_ts_recent = balances_sorted[0]["ts"]
+        balances_ts_recent = balances_sorted[0].ts
 
     if not alerts_sorted:
         alerts_ts_recent = 0
     else:
-        alerts_ts_recent = alerts_sorted[0]["ts"]
+        alerts_ts_recent = alerts_sorted[0].ts
 
     most_recent_ts = max(transactions_ts_recent, balances_ts_recent, alerts_ts_recent)
     if most_recent_ts == 0:
