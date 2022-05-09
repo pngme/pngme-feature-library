@@ -64,7 +64,6 @@ async def get_data_freshness(
     else:
         transactions_max_ts = transactions_flattened[0]["ts"]
 
-
     # STEP b2: get a list of all balances for each institution
     balance_inst_coroutines = []
     for inst in institutions:
@@ -95,7 +94,6 @@ async def get_data_freshness(
         balances_max_ts = 0
     else:
         balances_max_ts = balances_flattened[0]["ts"]
-
 
     # STEP c2: get a list of all alerts for each institution
     alerts_inst_coroutines = []
@@ -128,13 +126,12 @@ async def get_data_freshness(
     else:
         alerts_max_ts = alerts_flattened[0]["ts"]
 
-
     # STEP 6: Finally, we can get the minimum of the data freshness (in days)
     most_recent_ts = max(transactions_max_ts, balances_max_ts, alerts_max_ts)
     if most_recent_ts is None:
         data_freshness = None
     else:
-        data_freshness = (utc_endtime.timestamp() - most_recent_ts)/60
+        data_freshness = (utc_endtime.timestamp() - most_recent_ts) / 60
 
     return data_freshness
 
