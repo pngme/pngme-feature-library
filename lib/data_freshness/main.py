@@ -107,10 +107,10 @@ async def get_data_freshness(
         alerts_ts_recent = alerts_sorted[0]["ts"]
 
     most_recent_ts = max(transactions_ts_recent, balances_ts_recent, alerts_ts_recent)
-    if most_recent_ts is None:
-        data_freshness = None
-    else:
-        data_freshness = round((utc_endtime.timestamp() - most_recent_ts) / 60)
+    if most_recent_ts == 0:
+        return None
+
+    data_freshness = round((utc_endtime.timestamp() - most_recent_ts) / 60)
 
     return data_freshness
 
