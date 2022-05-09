@@ -34,8 +34,6 @@ async def get_net_cash_flow(
             institutions_w_depository.append(inst)
 
     # STEP 2: Loop through all transactions adding the transactions
-    cash_in_amount = 0
-    cash_out_amount = 0
     inst_coroutines = []
     for institution in institutions_w_depository:
         inst_coroutines.append(api_client.transactions.get(
@@ -49,6 +47,8 @@ async def get_net_cash_flow(
     transactions_by_institution = await asyncio.gather(*inst_coroutines)
 
     # STEP 3: Compute the net cash flow as the difference between cash-in and cash-out
+    cash_in_amount = 0
+    cash_out_amount = 0
     for transactions in transactions_by_institution:
         for transaction in transactions:
             if transaction.impact == "CREDIT":
