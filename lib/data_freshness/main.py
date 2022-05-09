@@ -5,144 +5,159 @@ import os
 from datetime import datetime, timedelta
 from pngme.api import AsyncClient
 
-# add a new feature to the feature library named freshness.
-# freshness is calculated as the difference between the utc_time provided and the largest toc observed in the financial event records or alert records.
-# implementation should be something like:
-# asynchronously query /balances, /transactions and /alerts over all time. only take the first page (should be sorted by toc desc).
-# take the largest toc among the first pages.
-# subtract utc_time from that toc, convert to minutes (integer) and return.
-# --
-# also, very importantly, confirm that the results are sorted as toc descending, so we know authoritatively that the first page contains the largest toc.
-
-
 
 async def get_data_freshness(
-        api_client: AsyncClient,
-        user_uuid: str,
-        utc_starttime: datetime,
-        utc_endtime: datetime,
+    api_client: AsyncClient,
+    user_uuid: str,
+    utc_starttime: datetime,
+    utc_endtime: datetime,
+    page: int,
 ) -> float:
-    """Return the time in days between utc_endtime and the most recent financial event or alert,
+    """Return the time in minutes between utc_endtime and the most recent financial event or alert,
     as an indicator of data freshness.
     Args:
         api_client: Pngme Async API client
         user_uuid: Pngme mobile phone user_uuid
         utc_starttime: the time from which balances are considered
         utc_endtime: the time until which balances are considered
+        page: the page(s) requested
     Returns:
-        Return the time in days between utc_endtime and the most recent financial event or alert
+        Return the time in minutes between utc_endtime and the most recent financial event or alert
     """
 
-    # STEP 1: get a list of all institutions for the user
+    # STEP 1: get lists of transactions, alerts, and balances for each institution
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
-    # subset to only fetch data for institutions known to contain loan-type accounts for the user
-    institutions_w_loan = []
+
+    # STEP a2: get a list of all transactions for each institution
+    transaction_inst_coroutine = []
     for inst in institutions:
-        if "loan" in inst.account_types:
-            institutions_w_loan.append(inst)
-
-    # STEP 2: get lists of transactions, alerts, and balances for each institution
-
-    # STEP 2a: get a list of all transactions for each institution
-
-    ## Don't need to do this by institution I believe!
-    ## How to get all records, from paginated data...
-    trans_inst_coroutines = []
-    for inst in institutions_w_loan:
-        trans_inst_coroutines.append(
+        transaction_inst_coroutine.append(
             api_client.transactions.get(
                 user_uuid=user_uuid,
-                # institution_id=inst.institution_id, #Default to all.
+                institution_id=inst.institution_id,
                 utc_starttime=utc_starttime,
                 utc_endtime=utc_endtime,
-                # account_types=["loan"], #Default to all.
+                page=1,
             )
         )
-    transactions_by_institution = await asyncio.gather(*trans_inst_coroutines)
 
-    # STEP 3: We flatten the lists of transactions into a single list of transactions
+    transactions_per_institution = await asyncio.gather(*transaction_inst_coroutine)
+
+    # STEP a3: flatten all balances from all institutions
+    # These do not emerge as sorted, likely due to the by-institution sorting. (must check about pagination).
     transactions_flattened = []
-    for ix, transactions in enumerate(transactions_by_institution):
+    for ix, transactions in enumerate(transactions_per_institution):
         institution_id = institutions[ix].institution_id
         for transaction in transactions:
-            transaction_dict = dict(transaction)
-            transaction_dict["institution_id"] = institution_id
+            transactions_flattened.append(
+                dict(transaction, institution_id=institution_id)
+            )
 
-            transactions_flattened.append(transaction_dict)
+    # STEP a4: Here we sort by timestamp so latest transactions are on top and keep the first entry
+    transactions_flattened = sorted(
+        transactions_flattened, key=lambda x: x["ts"], reverse=True
+    )
 
-    # STEP 5: Here we sort by timestamp so latest transactions are on top
-    transactions_max_ts = max(transactions_flattened, key=lambda x: x["ts"], reverse=True)
+    # STEP a5: Get timestamp of first transaction
+    if transactions_flattened is None:
+        transactions_max_ts = 0
+    else:
+        transactions_max_ts = transactions_flattened[0]["ts"]
 
-    # transactions_flattened = sorted(transactions_flattened, key=lambda x: x["ts"], reverse=True)
-    #
-    # # STEP 6: Then we loop through all transactions per institution and account and store the latest transaction
-    # latest_transactions = {}
-    # for transaction_record in transactions_flattened:
-    #     key = (transaction_record["institution_id"], transaction_record["account_id"])
-    #     if key not in latest_transactions:
-    #         # As we go top-down, we only need to store the first balance we found for each institution+account
-    #         latest_transactions[key] = transaction_record["balance"]
 
-    # STEP 2: get a list of all balances for each institution
-    inst_coroutines = []
-    for inst in institutions_w_loan:
-        inst_coroutines.append(
+    # STEP b2: get a list of all balances for each institution
+    balance_inst_coroutines = []
+    for inst in institutions:
+        balance_inst_coroutines.append(
             api_client.balances.get(
                 user_uuid=user_uuid,
                 institution_id=inst.institution_id,
                 utc_starttime=utc_starttime,
                 utc_endtime=utc_endtime,
-                account_types=["loan"],
+                page=1,
             )
         )
 
-    balances_per_institution = await asyncio.gather(*inst_coroutines)
+    balances_per_institution = await asyncio.gather(*balance_inst_coroutines)
 
-    # STEP 3: We flatten the lists of balances into a single list of balances
+    # STEP b3: flatten all balances from all institutions
     balances_flattened = []
     for ix, balances in enumerate(balances_per_institution):
         institution_id = institutions[ix].institution_id
         for balance in balances:
             balances_flattened.append(dict(balance, institution_id=institution_id))
 
-    # STEP 5: Here we sort by timestamp so latest balances are on top
+    # STEP b4: Here we sort by timestamp so latest transactions are on top and keep the first entry
     balances_flattened = sorted(balances_flattened, key=lambda x: x["ts"], reverse=True)
 
-    # STEP 6: Then we loop through all balances per institution and account and store the latest balance
-    latest_balances = {}
-    for loan_record in balances_flattened:
-        key = (loan_record["institution_id"], loan_record["account_id"])
-        if key not in latest_balances:
-            # As we go top-down, we only need to store the first balance we found for each institution+account
-            latest_balances[key] = loan_record["balance"]
-
-    # STEP 7: Finally, we can sum all the balances
-    balances_latest = sum(latest_balances.values())
+    # STEP b5: Get timestamp of first transaction
+    if balances_flattened is None:
+        balances_max_ts = 0
+    else:
+        balances_max_ts = balances_flattened[0]["ts"]
 
 
+    # STEP c2: get a list of all alerts for each institution
+    alerts_inst_coroutines = []
+    for inst in institutions:
+        alerts_inst_coroutines.append(
+            api_client.balances.get(
+                user_uuid=user_uuid,
+                institution_id=inst.institution_id,
+                utc_starttime=utc_starttime,
+                utc_endtime=utc_endtime,
+                page=1,
+            )
+        )
 
-    # STEP 7: Finally, we can get the minimum of the data freshness (in days)
-    data_freshness = min(data_freshness.values())
+    alerts_per_institution = await asyncio.gather(*alerts_inst_coroutines)
+
+    # STEP c3: flatten all balances from all institutions
+    alerts_flattened = []
+    for ix, alerts in enumerate(alerts_per_institution):
+        institution_id = institutions[ix].institution_id
+        for alert in alerts:
+            alerts_flattened.append(dict(alert, institution_id=institution_id))
+
+    # STEP c4: Here we sort by timestamp so latest transactions are on top and keep the first entry
+    alerts_flattened = sorted(alerts_flattened, key=lambda x: x["ts"], reverse=True)
+
+    # STEP c5: Get timestamp of first transaction
+    if alerts_flattened is None:
+        alerts_max_ts = 0
+    else:
+        alerts_max_ts = alerts_flattened[0]["ts"]
+
+
+    # STEP 6: Finally, we can get the minimum of the data freshness (in days)
+    most_recent_ts = max(transactions_max_ts, balances_max_ts, alerts_max_ts)
+    if most_recent_ts is None:
+        data_freshness = None
+    else:
+        data_freshness = (utc_endtime.timestamp() - most_recent_ts)/60
+
     return data_freshness
+
 
 if __name__ == "__main__":
     # Mercy Otingo, mercy@pngme.demo, 234112312
     user_uuid = "958a5ae8-f3a3-41d5-ae48-177fdc19e3f4"
     token = os.environ["PNGME_TOKEN"]
     client = AsyncClient(token)
-    now = datetime(2021, 10, 31)
-    cutoff_interval = timedelta(days=30)
-    utc_starttime = now - cutoff_interval
 
+    utc_endtime = datetime(2021, 11, 1)
+    utc_starttime = utc_endtime - timedelta(days=30)
+    page = 1
 
     async def main():
-        sum_of_balances_latest = await get_sum_of_loan_balances_latest(
-            api_client=client,
-            user_uuid=user_uuid,
-            utc_starttime=utc_starttime,
-            utc_endtime=now,
+        data_freshness = await get_data_freshness(
+            client,
+            user_uuid,
+            utc_starttime,
+            utc_endtime,
+            page,
         )
-        print(sum_of_balances_latest)
 
+        print(data_freshness)
 
     asyncio.run(main())
