@@ -9,8 +9,8 @@ from pngme.api import AsyncClient
 async def get_sum_of_loan_balances_latest(
     api_client: AsyncClient,
     user_uuid: str,
-    utc_time: datetime,
-    cutoff_interval: timedelta = timedelta(days=90),
+    utc_starttime: datetime,
+    utc_endtime: datetime,
 ) -> float:
     """Return the latest balance summed across all loan accounts.
 
@@ -20,8 +20,8 @@ async def get_sum_of_loan_balances_latest(
     Args:
         api_client: Pngme Async API client
         user_uuid: Pngme mobile phone user_uuid
-        utc_time: the time at which the latest balance is computed
-        cutoff_interval: if balance hasn't been updated within this interval, then balance record is stale, and method returns 0
+        utc_starttime: the time from which balances are considered
+        utc_endtime: the time until which balances are considered
 
     Returns:
         The latest balance summed across all loan accounts
@@ -29,7 +29,6 @@ async def get_sum_of_loan_balances_latest(
     
     # STEP 1: get a list of all institutions for the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
-    utc_starttime = utc_time - cutoff_interval
 
     # subset to only fetch data for institutions known to contain loan-type accounts for the user
     institutions_w_loan = []
@@ -45,19 +44,22 @@ async def get_sum_of_loan_balances_latest(
                 user_uuid=user_uuid,
                 institution_id=inst.institution_id,
                 utc_starttime=utc_starttime,
-                utc_endtime=utc_time,
+                utc_endtime=utc_endtime,
                 account_types=["loan"],
         )
     )
 
-    balances_per_institution = await asyncio.gather(*inst_coroutines)
+    balances_by_institution = await asyncio.gather(*inst_coroutines)
 
     # STEP 3: We flatten the lists of balances into a single list of balances
     balances_flattened = []
-    for ix, balances in enumerate(balances_per_institution):
+    for ix, balances in enumerate(balances_by_institution):
         institution_id = institutions[ix].institution_id
         for balance in balances:
-            balances_flattened.append(dict(balance, institution_id=institution_id))
+            balance_dict = dict(balance)
+            balance_dict["institution_id"] = institution_id
+
+            balances_flattened.append(balance_dict)
     
     # STEP 5: Here we sort by timestamp so latest balances are on top
     balances_flattened = sorted(balances_flattened, key=lambda x: x["ts"], reverse=True)
@@ -83,10 +85,15 @@ if __name__ == "__main__":
     client = AsyncClient(token)
 
     now = datetime(2021, 10, 31)
+    cutoff_interval = timedelta(days=30)
+    utc_starttime = now - cutoff_interval
 
     async def main():
         sum_of_balances_latest = await get_sum_of_loan_balances_latest(
-            client, user_uuid, now
+            api_client=client,
+            user_uuid=user_uuid,
+            utc_starttime=utc_starttime,
+            utc_endtime=now,
         )
         print(sum_of_balances_latest)
     asyncio.run(main())

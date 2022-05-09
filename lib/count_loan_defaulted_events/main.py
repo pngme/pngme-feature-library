@@ -48,12 +48,12 @@ async def get_count_loan_defaulted_events(
         )
 
     # async fetch alerts across institutions with loans
-    r = await asyncio.gather(*inst_coroutines)
+    alerts_by_institution = await asyncio.gather(*inst_coroutines)
 
     # STEP 3: count the total number of LoanDefaulted alert records across all institutions with loan data
     count_loan_defaulted_events = 0
-    for institution_alerts_resp in r:
-        count_loan_defaulted_events += len(institution_alerts_resp)
+    for alerts in alerts_by_institution:
+        count_loan_defaulted_events += len(alerts)
 
     return count_loan_defaulted_events
 
