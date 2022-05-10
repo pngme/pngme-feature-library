@@ -104,6 +104,9 @@ async def get_data_recency_minutes(
     if most_recent_ts == 0:
         return None
 
+    # calculate data recency by getting the time difference between the end of the window and the most recent
+    # alert or event.  Uses timezone.utc explicitly to avoid using the local machine's time when differencing,
+    # since timestamp uses local machine time zone when converting from datetime to timestamp (unix time).
     data_recency_minutes = round((utc_endtime.replace(tzinfo=timezone.utc).timestamp()
                                   - most_recent_ts) / 60)
     return data_recency_minutes
