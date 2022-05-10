@@ -2,19 +2,19 @@
 
 import asyncio
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pngme.api import AsyncClient
 from typing import Optional
 
 
-async def get_data_freshness(
+async def get_data_recency_minutes(
     api_client: AsyncClient,
     user_uuid: str,
     utc_starttime: datetime,
     utc_endtime: datetime,
 ) -> Optional[int]:
     """Return the time in minutes between utc_endtime and the most recent financial event or alert,
-    as an indicator of data freshness.
+    as an indicator of data recency, or freshness.
     Args:
         api_client: Pngme Async API client
         user_uuid: Pngme mobile phone user_uuid
@@ -104,9 +104,12 @@ async def get_data_freshness(
     if most_recent_ts == 0:
         return None
 
-    data_freshness = round((utc_endtime.timestamp() - most_recent_ts) / 60)
-
-    return data_freshness
+    # calculate data recency by getting the time difference between the end of the window and the most recent
+    # alert or event.  Uses timezone.utc explicitly to avoid using the local machine's time when differencing,
+    # since timestamp uses local machine time zone when converting from datetime to timestamp (unix time).
+    data_recency_minutes = round((utc_endtime.replace(tzinfo=timezone.utc).timestamp()
+                                  - most_recent_ts) / 60)
+    return data_recency_minutes
 
 
 if __name__ == "__main__":
@@ -119,13 +122,13 @@ if __name__ == "__main__":
     utc_starttime = utc_endtime - timedelta(days=30)
 
     async def main():
-        data_freshness = await get_data_freshness(
+        data_recency_minutes = await get_data_recency_minutes(
             client,
             user_uuid,
             utc_starttime,
             utc_endtime,
         )
 
-        print(data_freshness)
+        print(data_recency_minutes)
 
     asyncio.run(main())

@@ -1,4 +1,4 @@
-# Data freshness
+# Data recency (in minutes)
 
 1. Create and activate a virtual environment:
 
