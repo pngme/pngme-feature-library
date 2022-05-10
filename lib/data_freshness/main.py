@@ -4,6 +4,7 @@ import asyncio
 import os
 from datetime import datetime, timedelta
 from pngme.api import AsyncClient
+from typing import Optional
 
 
 async def get_data_freshness(
@@ -11,7 +12,7 @@ async def get_data_freshness(
     user_uuid: str,
     utc_starttime: datetime,
     utc_endtime: datetime,
-) -> float:
+) -> Optional[int]:
     """Return the time in minutes between utc_endtime and the most recent financial event or alert,
     as an indicator of data freshness.
     Args:
@@ -66,26 +67,21 @@ async def get_data_freshness(
 
     # STEP 3: flatten all balances, transactions, and alerts from all institutions, and get most recent time
     transactions_flattened = []
-    for ix, transactions in enumerate(transactions_per_institution):
-        institution_id = institutions[ix].institution_id
+    for transactions in transactions_per_institution:
         for transaction in transactions:
             transactions_flattened.append(transaction)
 
     balances_flattened = []
-    for ix, balances in enumerate(balances_per_institution):
-        institution_id = institutions[ix].institution_id
+    for balances in balances_per_institution:
         for balance in balances:
             balances_flattened.append(balance)
 
     alerts_flattened = []
-    for ix, alerts in enumerate(alerts_per_institution):
-        institution_id = institutions[ix].institution_id
+    for alerts in alerts_per_institution:
         for alert in alerts:
             alerts_flattened.append(alert)
 
-    transactions_sorted = sorted(
-        transactions_flattened, key=lambda x: x.ts, reverse=True
-    )
+    transactions_sorted = sorted(transactions_flattened, key=lambda x: x.ts, reverse=True)
     balances_sorted = sorted(balances_flattened, key=lambda x: x.ts, reverse=True)
     alerts_sorted = sorted(alerts_flattened, key=lambda x: x.ts, reverse=True)
 
