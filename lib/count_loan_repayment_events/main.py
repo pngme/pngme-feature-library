@@ -33,7 +33,7 @@ async def get_count_loan_repayment_events(
         alerts_coroutines.append(
             api_client.alerts.get(
                 user_uuid=user_uuid,
-                institution_id=inst.institution_id,
+                institution_id=inst["institution_id"],
                 utc_starttime=utc_starttime,
                 utc_endtime=utc_endtime,
                 labels=["LoanRepayment"],

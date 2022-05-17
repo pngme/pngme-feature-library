@@ -34,7 +34,7 @@ async def get_count_institutions_with_open_loans(
     # subset to only institutions that contain loan-type accounts
     institutions_w_loan = []
     for inst in institutions:
-        if "loan" in inst.account_types:
+        if "loan" in inst["account_types"]:
             institutions_w_loan.append(inst)
 
     # STEP 2: fetch alert records for all institutions that contain loan-type accounts
@@ -43,7 +43,7 @@ async def get_count_institutions_with_open_loans(
         alerts_coroutines.append(
             api_client.alerts.get(
                 user_uuid=user_uuid,
-                institution_id=inst_w_loan.institution_id,
+                institution_id=inst_w_loan["institution_id"],
                 utc_starttime=utc_starttime,
                 utc_endtime=utc_endtime,
                 labels=["LoanApproved", "LoanDisbursed"],

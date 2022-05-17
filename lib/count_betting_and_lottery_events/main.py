@@ -28,7 +28,7 @@ async def get_count_betting_and_lottery_events(
     # subset to only fetch data for institutions known to contain depository-type accounts for the user
     institutions_w_depository = []
     for inst in institutions:
-        if "depository" in inst.account_types:
+        if "depository" in inst["account_types"]:
             institutions_w_depository.append(inst)
 
     # STEP 2: fetch alert records for all institutions with BettingAndLottery label
@@ -37,7 +37,7 @@ async def get_count_betting_and_lottery_events(
         alerts_coroutines.append(
             api_client.alerts.get(
                 user_uuid=user_uuid,
-                institution_id=inst_w_loan.institution_id,
+                institution_id=inst_w_loan["institution_id"],
                 utc_starttime=utc_starttime,
                 utc_endtime=utc_endtime,
                 labels=["BettingAndLottery"],

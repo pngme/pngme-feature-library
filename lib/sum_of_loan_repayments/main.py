@@ -36,7 +36,7 @@ async def get_sum_of_loan_repayments(
     # subset to only fetch data for institutions known to contain loan-type accounts for the user
     institutions_w_loan = []
     for inst in institutions:
-        if "loan" in inst.account_types:
+        if "loan" in inst["account_types"]:
             institutions_w_loan.append(inst)
 
     # STEP 2: get a list of all transactions for each institution
@@ -45,7 +45,7 @@ async def get_sum_of_loan_repayments(
         inst_coroutines.append(
             api_client.transactions.get(
                 user_uuid=user_uuid,
-                institution_id=inst.institution_id,
+                institution_id=inst["institution_id"],
                 utc_starttime=utc_starttime,
                 utc_endtime=utc_endtime,
                 account_types=["loan"],
@@ -58,8 +58,8 @@ async def get_sum_of_loan_repayments(
     repayments_sum = 0
     for transactions in transactions_by_institution:
         for transaction in transactions:
-            if transaction.impact == "CREDIT":
-                repayments_sum += transaction.amount
+            if transaction["impact"] == "CREDIT":
+                repayments_sum += transaction["amount"]
            
     return repayments_sum
 

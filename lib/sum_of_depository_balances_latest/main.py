@@ -33,7 +33,7 @@ async def get_sum_of_depository_balances_latest(
     # subset to only fetch data for institutions known to contain depository-type accounts for the user
     institutions_w_depository = []
     for inst in institutions:
-        if "depository" in inst.account_types:
+        if "depository" in inst["account_types"]:
             institutions_w_depository.append(inst)
 
     # STEP 2: get a list of all balances for each institution
@@ -42,7 +42,7 @@ async def get_sum_of_depository_balances_latest(
         inst_coroutines.append(
             api_client.balances.get(
                 user_uuid=user_uuid,
-                institution_id=inst.institution_id,
+                institution_id=inst["institution_id"],
                 utc_starttime=utc_starttime,
                 utc_endtime=utc_endtime,
                 account_types=["depository"],
@@ -54,7 +54,7 @@ async def get_sum_of_depository_balances_latest(
     # STEP 3: We flatten the lists of balances into a single list of balances
     balances_flattened = []
     for ix, inst_list in enumerate(balances_by_institution):
-        institution_id = institutions[ix].institution_id
+        institution_id = institutions[ix]["institution_id"]
         for balance in inst_list:
             balance_dict = dict(balance)
             balance_dict["institution_id"] = institution_id

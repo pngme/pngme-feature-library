@@ -33,7 +33,7 @@ async def get_sum_of_loan_balances_latest(
     # subset to only fetch data for institutions known to contain loan-type accounts for the user
     institutions_w_loan = []
     for inst in institutions:
-        if "loan" in inst.account_types:
+        if "loan" in inst["account_types"]:
             institutions_w_loan.append(inst)
 
     # STEP 2: get a list of all balances for each institution
@@ -42,7 +42,7 @@ async def get_sum_of_loan_balances_latest(
         inst_coroutines.append(
             api_client.balances.get(
                 user_uuid=user_uuid,
-                institution_id=inst.institution_id,
+                institution_id=inst["institution_id"],
                 utc_starttime=utc_starttime,
                 utc_endtime=utc_endtime,
                 account_types=["loan"],
@@ -54,7 +54,7 @@ async def get_sum_of_loan_balances_latest(
     # STEP 3: We flatten the lists of balances into a single list of balances
     balances_flattened = []
     for ix, balances in enumerate(balances_by_institution):
-        institution_id = institutions[ix].institution_id
+        institution_id = institutions[ix]["institution_id"]
         for balance in balances:
             balance_dict = dict(balance)
             balance_dict["institution_id"] = institution_id
