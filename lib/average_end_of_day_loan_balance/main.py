@@ -36,7 +36,7 @@ async def get_average_end_of_day_balance(
     # subset to only fetch data for institutions known to contain loan-type accounts for the user
     institutions_w_loan = []
     for inst in institutions:
-        if "loan" in inst.account_types:
+        if "loan" in inst["account_types"]:
             institutions_w_loan.append(inst)
 
     # STEP 2: Construct timerange since beginning of time
@@ -51,7 +51,7 @@ async def get_average_end_of_day_balance(
         inst_coroutines.append(
             api_client.balances.get(
                 user_uuid=user_uuid,
-                institution_id=institution.institution_id,
+                institution_id=institution["institution_id"],
                 utc_starttime=all_pages_starttime,
                 utc_endtime=all_pages_utc_endtime,
                 account_types=["loan"],
@@ -63,7 +63,7 @@ async def get_average_end_of_day_balance(
     # STEP 4: flatten all balances from all institutions
     record_list = []
     for ix, balances in enumerate(balances_by_institution):
-        institution_id = institutions[ix].institution_id
+        institution_id = institutions[ix]["institution_id"]
         for balance in balances:
             balance_dict = dict(balance)
             balance_dict["institution_id"] = institution_id

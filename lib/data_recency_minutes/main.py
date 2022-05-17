@@ -36,7 +36,7 @@ async def get_data_recency_minutes(
         transaction_inst_coroutine.append(
             api_client.transactions.get(
                 user_uuid=user_uuid,
-                institution_id=inst.institution_id,
+                institution_id=inst["institution_id"],
                 utc_starttime=utc_starttime,
                 utc_endtime=utc_endtime,
                 page=1,
@@ -45,7 +45,7 @@ async def get_data_recency_minutes(
         balance_inst_coroutines.append(
             api_client.balances.get(
                 user_uuid=user_uuid,
-                institution_id=inst.institution_id,
+                institution_id=inst["institution_id"],
                 utc_starttime=utc_starttime,
                 utc_endtime=utc_endtime,
                 page=1,
@@ -54,7 +54,7 @@ async def get_data_recency_minutes(
         alerts_inst_coroutines.append(
             api_client.balances.get(
                 user_uuid=user_uuid,
-                institution_id=inst.institution_id,
+                institution_id=inst["institution_id"],
                 utc_starttime=utc_starttime,
                 utc_endtime=utc_endtime,
                 page=1,
@@ -81,24 +81,24 @@ async def get_data_recency_minutes(
         for alert in alerts:
             alerts_flattened.append(alert)
 
-    transactions_sorted = sorted(transactions_flattened, key=lambda x: x.ts, reverse=True)
-    balances_sorted = sorted(balances_flattened, key=lambda x: x.ts, reverse=True)
-    alerts_sorted = sorted(alerts_flattened, key=lambda x: x.ts, reverse=True)
+    transactions_sorted = sorted(transactions_flattened, key=lambda x: x["ts"], reverse=True)
+    balances_sorted = sorted(balances_flattened, key=lambda x: x["ts"], reverse=True)
+    alerts_sorted = sorted(alerts_flattened, key=lambda x: x["ts"], reverse=True)
 
     if not transactions_sorted:
         transactions_ts_recent = 0
     else:
-        transactions_ts_recent = transactions_sorted[0].ts
+        transactions_ts_recent = transactions_sorted[0]["ts"]
 
     if not balances_sorted:
         balances_ts_recent = 0
     else:
-        balances_ts_recent = balances_sorted[0].ts
+        balances_ts_recent = balances_sorted[0]["ts"]
 
     if not alerts_sorted:
         alerts_ts_recent = 0
     else:
-        alerts_ts_recent = alerts_sorted[0].ts
+        alerts_ts_recent = alerts_sorted[0]["ts"]
 
     most_recent_ts = max(transactions_ts_recent, balances_ts_recent, alerts_ts_recent)
     if most_recent_ts == 0:

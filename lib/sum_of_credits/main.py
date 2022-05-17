@@ -38,7 +38,7 @@ async def get_sum_of_credits(
     # subset to only fetch data for institutions known to contain depository-type accounts for the user
     institutions_w_depository = []
     for inst in institutions:
-        if "depository" in inst.account_types:
+        if "depository" in inst["account_types"]:
             institutions_w_depository.append(inst)
 
     # STEP 2: get a list of all transactions for each institution
@@ -47,7 +47,7 @@ async def get_sum_of_credits(
         inst_coroutines.append(
             api_client.transactions.get(
             user_uuid=user_uuid,
-            institution_id=inst.institution_id,
+            institution_id=inst["institution_id"],
             utc_starttime=utc_starttime,
             utc_endtime=utc_time,
             account_types=["depository"],
@@ -60,8 +60,8 @@ async def get_sum_of_credits(
     amount = 0
     for transactions in transactions_by_institution:
         for transaction in transactions:
-            if transaction.impact == "CREDIT" and transaction.amount is not None:
-                amount += transaction.amount
+            if transaction["impact"] == "CREDIT" and transaction["amount"] is not None:
+                amount += transaction["amount"]
 
     return amount
 

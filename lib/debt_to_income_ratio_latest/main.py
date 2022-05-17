@@ -36,16 +36,16 @@ async def get_debt_to_income_ratio_latest(
     # subset to only fetch data for institutions known to contain loan-type accounts for the user
     institutions_w_loan = []
     for inst in institutions:
-        if "loan" in inst.account_types:
+        if "loan" in inst["account_types"]:
             institutions_w_loan.append(inst)
     
     # STEP 2: Prepare a list of tasks to fetch balances for each institution with loan accounts
     loan_inst_coroutines = []
     for institution in institutions_w_loan:
         loan_inst_coroutines.append(
-            api_client.balances.get(
+            await api_client.balances.get(
                 user_uuid=user_uuid,
-                institution_id=institution.institution_id,
+                institution_id=institution["institution_id"],
                 utc_starttime=utc_starttime,
                 utc_endtime=utc_endtime,
                 account_types=["loan"],
@@ -55,16 +55,16 @@ async def get_debt_to_income_ratio_latest(
     # subset to only fetch data for institutions known to contain depository-type accounts for the user
     institutions_w_depository = []
     for inst in institutions:
-        if "depository" in inst.account_types:
+        if "depository" in inst["account_types"]:
             institutions_w_depository.append(inst)
 
     # STEP 3: Prepare a list of tasks to fetch balances for each institution with depository accounts
     depository_inst_coroutines = []
     for institution in institutions_w_depository:
         depository_inst_coroutines.append(
-            api_client.transactions.get(
+            await api_client.transactions.get(
                 user_uuid=user_uuid,
-                institution_id=institution.institution_id,
+                institution_id=institution["institution_id"],
                 utc_starttime=utc_starttime,
                 utc_endtime=utc_endtime,
                 account_types=["depository"],
@@ -77,7 +77,7 @@ async def get_debt_to_income_ratio_latest(
     # STEP 4.1: Include institution id to each loan balance record so we can sum the balance for each one
     loan_records_list = []
     for ix, balance_records in enumerate(loan_balances_by_institution):
-        institution_id = institutions[ix].institution_id
+        institution_id = institutions[ix]["institution_id"]
         for balance in balance_records:
             balance_dict = dict(balance)
             balance_dict["institution_id"] = institution_id
@@ -91,7 +91,7 @@ async def get_debt_to_income_ratio_latest(
     depository_credit_records_list = []
     for inst_lst in depository_transactions_by_institution:
         for transaction_record in inst_lst:
-            if transaction_record.impact == "CREDIT":
+            if transaction_record["impact"] == "CREDIT":
                 # As we needed to cast the balance records as dict, we do the same
                 # here so calculations do not mix dictionaries and objects for easier reading
                 depository_credit_records_list.append(dict(transaction_record))

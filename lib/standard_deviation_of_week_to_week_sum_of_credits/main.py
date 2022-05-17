@@ -29,7 +29,7 @@ async def get_standard_deviation_of_week_to_week_sum_of_credits(
     # subset to only fetch data for institutions known to contain depository-type accounts for the user
     institutions_w_depository = []
     for inst in institutions:
-        if "depository" in inst.account_types:
+        if "depository" in inst["account_types"]:
             institutions_w_depository.append(inst)
 
     # Constructs a dataframe that contains transactions from all institutions for the user
@@ -38,7 +38,7 @@ async def get_standard_deviation_of_week_to_week_sum_of_credits(
         coroutines.append(
             client.transactions.get(
                 user_uuid=user_uuid,
-                institution_id=institution.institution_id,
+                institution_id=institution["institution_id"],
                 utc_starttime=utc_starttime,
                 utc_endtime=utc_endtime,
                 account_types=["depository"],
@@ -58,7 +58,7 @@ async def get_standard_deviation_of_week_to_week_sum_of_credits(
             record_list_flattened.append(dict(transaction))
 
     record_df = pd.DataFrame(record_list_flattened)
-    credit_df = record_df[(record_df.impact == "CREDIT")]
+    credit_df = record_df[(record_df["impact"] == "CREDIT")]
 
     # if no data available for credit, return None
     if credit_df.empty:
