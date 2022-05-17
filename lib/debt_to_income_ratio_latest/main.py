@@ -43,7 +43,7 @@ async def get_debt_to_income_ratio_latest(
     loan_inst_coroutines = []
     for institution in institutions_w_loan:
         loan_inst_coroutines.append(
-            await api_client.balances.get(
+            api_client.balances.get(
                 user_uuid=user_uuid,
                 institution_id=institution["institution_id"],
                 utc_starttime=utc_starttime,
@@ -62,7 +62,7 @@ async def get_debt_to_income_ratio_latest(
     depository_inst_coroutines = []
     for institution in institutions_w_depository:
         depository_inst_coroutines.append(
-            await api_client.transactions.get(
+            api_client.transactions.get(
                 user_uuid=user_uuid,
                 institution_id=institution["institution_id"],
                 utc_starttime=utc_starttime,
