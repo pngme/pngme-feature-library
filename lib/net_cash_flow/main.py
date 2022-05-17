@@ -30,7 +30,7 @@ async def get_net_cash_flow(
     # subset to only fetch data for institutions known to contain depository-type accounts for the user
     institutions_w_depository = []
     for inst in institutions:
-        if "depository" in inst.account_types:
+        if "depository" in inst["account_types"]:
             institutions_w_depository.append(inst)
 
     # STEP 2: Loop through all transactions adding the transactions
@@ -38,7 +38,7 @@ async def get_net_cash_flow(
     for institution in institutions_w_depository:
         inst_coroutines.append(api_client.transactions.get(
             user_uuid=user_uuid,
-            institution_id=institution.institution_id,
+            institution_id=institution["institution_id"],
             utc_starttime=utc_starttime,
             utc_endtime=utc_endtime,
             account_types=["depository"],
@@ -51,10 +51,10 @@ async def get_net_cash_flow(
     cash_out_amount = 0
     for transactions in transactions_by_institution:
         for transaction in transactions:
-            if transaction.impact == "CREDIT":
-                cash_in_amount += transaction.amount
-            elif transaction.impact == "DEBIT":
-                cash_out_amount += transaction.amount
+            if transaction["impact"] == "CREDIT":
+                cash_in_amount += transaction["amount"]
+            elif transaction["impact"] == "DEBIT":
+                cash_out_amount += transaction["amount"]
 
 
     total_net_cash_flow = cash_in_amount - cash_out_amount
