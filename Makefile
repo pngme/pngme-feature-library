@@ -1,15 +1,15 @@
-ROOTDIR := $(CURDIR)
+.PHONY: install
+install:
+	bash scripts/install.sh
 
 .PHONY: format
 format:
-	black .
+	.venv/bin/black .
 
 .PHONY: lint
 lint:
-	@for FEATUREDIR in lib/*; do \
-		WORKDIR=$(ROOTDIR)/$$FEATUREDIR ; \
-		echo "\nChecking: $$WORKDIR" ; \
-		cd $$WORKDIR \
-			&& black --check . \
-			&& mypy . ; \
-	done
+	bash scripts/lint.sh
+
+.PHONY: test
+test:
+	bash scripts/test.sh

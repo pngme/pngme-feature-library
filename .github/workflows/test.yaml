@@ -1,0 +1,52 @@
+name: Test features
+
+on: pull_request
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  test:
+    name: Test features
+
+    strategy:
+      matrix:
+        python-version:
+          - '3.8'
+          - '3.9'
+          - '3.10'
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Python dependencies
+        run: make install
+
+      - name: Set pngmedemo API token 🔑
+        env:
+          ROBOT_EMAIL: ${{ secrets.ROBOT_EMAIL }}
+          ROBOT_PASSWORD: ${{ secrets.ROBOT_PASSWORD }}
+        run: |
+          BASIC_AUTH=$(echo -n $ROBOT_EMAIL:$ROBOT_PASSWORD | base64)
+          AUTH_RESPONSE=$(curl -X GET https://api.pngme.com/beta/auth \
+              --header "Accept: application/json" \
+              --header "Authorization: Basic $BASIC_AUTH")
+
+          PNGME_TOKEN=$(echo $AUTH_RESPONSE \
+              | jq '.[] | select(.organization_name == "pngmedemo")' \
+              | jq '.auth[] | select(.type == "demo")' \
+              | jq --raw-output '.api_token')
+          echo "PNGME_TOKEN=$PNGME_TOKEN" >> $GITHUB_ENV
+
+      - name: Test 👨‍🔬
+        run: make test
