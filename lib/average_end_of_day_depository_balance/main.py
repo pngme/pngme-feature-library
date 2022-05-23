@@ -68,8 +68,8 @@ async def get_average_end_of_day_depository_balance(
             balance_dict["institution_id"] = institution_id
 
             record_list.append(balance_dict)
-    
-    # if no data is present, consider the sum of balances to be non-existing 
+
+    # if no data is present, consider the sum of balances to be non-existing
     if len(record_list) == 0:
         return None
 
@@ -77,8 +77,9 @@ async def get_average_end_of_day_depository_balance(
     balances_df = pd.DataFrame(record_list)
 
     # Sort and create a column for day, filter by time window
-    balances_df = balances_df.sort_values("ts")
-    balances_df["yyyymmdd"] = pd.to_datetime(balances_df["ts"], unit="s")
+    balances_df["timestamp"] = balances_df["timestamp"].astype('datetime64[D]')
+    balances_df = balances_df.sort_values("timestamp")
+    balances_df["yyyymmdd"] = pd.to_datetime(balances_df["timestamp"])
     balances_df["yyyymmdd"] = balances_df["yyyymmdd"].dt.floor("D")
 
     # Get end of day balances,

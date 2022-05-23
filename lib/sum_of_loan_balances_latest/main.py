@@ -62,7 +62,7 @@ async def get_sum_of_loan_balances_latest(
             balances_flattened.append(balance_dict)
     
     # STEP 5: Here we sort by timestamp so latest balances are on top
-    balances_flattened = sorted(balances_flattened, key=lambda x: x["ts"], reverse=True)
+    balances_flattened = sorted(balances_flattened, key=lambda x: x["timestamp"], reverse=True)
 
     # STEP 6: Then we loop through all balances per institution and account and store the latest balance
     latest_balances = {}
