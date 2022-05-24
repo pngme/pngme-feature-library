@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import asyncio
-import dateutil.parser as date_parser
 import os
 
 from datetime import datetime, timedelta, timezone
@@ -94,21 +93,23 @@ async def get_data_recency_minutes(
     if not transactions_sorted:
         transactions_ts_recent = 0.0
     else:
-        transactions_ts_recent = date_parser.parse(
+        transactions_ts_recent = datetime.fromisoformat(
             transactions_sorted[0]["timestamp"]
         ).timestamp()
 
     if not balances_sorted:
         balances_ts_recent = 0.0
     else:
-        balances_ts_recent = date_parser.parse(
+        balances_ts_recent = datetime.fromisoformat(
             balances_sorted[0]["timestamp"]
         ).timestamp()
 
     if not alerts_sorted:
         alerts_ts_recent = 0.0
     else:
-        alerts_ts_recent = date_parser.parse(alerts_sorted[0]["timestamp"]).timestamp()
+        alerts_ts_recent = datetime.fromisoformat(
+            alerts_sorted[0]["timestamp"]
+        ).timestamp()
 
     most_recent_ts = max(transactions_ts_recent, balances_ts_recent, alerts_ts_recent)
     if most_recent_ts == 0.0:
