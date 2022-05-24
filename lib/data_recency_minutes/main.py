@@ -2,6 +2,7 @@
 
 import asyncio
 import os
+
 from datetime import datetime, timedelta, timezone
 from pngme.api import AsyncClient
 from typing import Optional
@@ -81,34 +82,42 @@ async def get_data_recency_minutes(
         for alert in alerts:
             alerts_flattened.append(alert)
 
-    transactions_sorted = sorted(transactions_flattened, key=lambda x: x["ts"], reverse=True)
-    balances_sorted = sorted(balances_flattened, key=lambda x: x["ts"], reverse=True)
-    alerts_sorted = sorted(alerts_flattened, key=lambda x: x["ts"], reverse=True)
+    transactions_sorted = sorted(
+        transactions_flattened, key=lambda x: x["timestamp"], reverse=True
+    )
+    balances_sorted = sorted(
+        balances_flattened, key=lambda x: x["timestamp"], reverse=True
+    )
+    alerts_sorted = sorted(alerts_flattened, key=lambda x: x["timestamp"], reverse=True)
 
     if not transactions_sorted:
-        transactions_ts_recent = 0
+        transactions_ts_recent = 0.0
     else:
-        transactions_ts_recent = transactions_sorted[0]["ts"]
+        transactions_ts_recent = datetime.fromisoformat(
+            transactions_sorted[0]["timestamp"]
+        ).timestamp()
 
     if not balances_sorted:
-        balances_ts_recent = 0
+        balances_ts_recent = 0.0
     else:
-        balances_ts_recent = balances_sorted[0]["ts"]
+        balances_ts_recent = datetime.fromisoformat(
+            balances_sorted[0]["timestamp"]
+        ).timestamp()
 
     if not alerts_sorted:
-        alerts_ts_recent = 0
+        alerts_ts_recent = 0.0
     else:
-        alerts_ts_recent = alerts_sorted[0]["ts"]
+        alerts_ts_recent = datetime.fromisoformat(
+            alerts_sorted[0]["timestamp"]
+        ).timestamp()
 
     most_recent_ts = max(transactions_ts_recent, balances_ts_recent, alerts_ts_recent)
-    if most_recent_ts == 0:
+    if most_recent_ts == 0.0:
         return None
 
-    # calculate data recency by getting the time difference between the end of the window and the most recent
-    # alert or event.  Uses timezone.utc explicitly to avoid using the local machine's time when differencing,
-    # since timestamp uses local machine time zone when converting from datetime to timestamp (unix time).
-    data_recency_minutes = round((utc_endtime.replace(tzinfo=timezone.utc).timestamp()
-                                  - most_recent_ts) / 60)
+    data_recency_minutes = round(
+        (utc_endtime.replace(tzinfo=timezone.utc).timestamp() - most_recent_ts) / 60
+    )
     return data_recency_minutes
 
 

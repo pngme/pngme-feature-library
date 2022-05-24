@@ -1,2 +1,2 @@
 pandas
-pngme-api == 0.9.6
+pngme-api == 0.10.0

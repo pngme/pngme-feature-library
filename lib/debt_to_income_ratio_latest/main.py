@@ -111,7 +111,7 @@ async def get_debt_to_income_ratio_latest(
         return float("inf")
 
     # STEP 6: Here we sort by timestamp so latest balances are on top
-    loan_records_list = sorted(loan_records_list, key=lambda x: x["ts"], reverse=True)
+    loan_records_list = sorted(loan_records_list, key=lambda x: x["timestamp"], reverse=True)
 
     # STEP 7: Then we loop through all balances per institution and account and store the latest balance
     latest_balances = {}
