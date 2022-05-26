@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 import asyncio
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from pngme.api import AsyncClient
+
 
 async def get_count_betting_and_lottery_events(
     api_client: AsyncClient,
@@ -22,9 +23,13 @@ async def get_count_betting_and_lottery_events(
     Returns:
         count of BettingAndLottery events within the given time window
     """
+    # Make sure the timestamps are of UTC timezone
+    utc_starttime = utc_starttime.astimezone(timezone.utc).replace(tzinfo=None)
+    utc_endtime = utc_endtime.astimezone(timezone.utc).replace(tzinfo=None)
+
     # STEP 1: fetch list of institutions belonging to the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
-    
+
     # subset to only fetch data for institutions known to contain depository-type accounts for the user
     institutions_w_depository = []
     for inst in institutions:

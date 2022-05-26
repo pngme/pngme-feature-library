@@ -2,7 +2,7 @@
 
 import asyncio
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from pngme.api import AsyncClient
 
@@ -30,6 +30,10 @@ async def get_sum_of_loan_repayments(
     Returns:
         the sum total of all loan repayments (i.e. credit transaction amounts across all loan accounts) over the predefined ranges.
     """
+    # Make sure the timestamps are of UTC timezone
+    utc_starttime = utc_starttime.astimezone(timezone.utc).replace(tzinfo=None)
+    utc_endtime = utc_endtime.astimezone(timezone.utc).replace(tzinfo=None)
+
     # STEP 1: get a list of all institutions for the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
@@ -53,14 +57,14 @@ async def get_sum_of_loan_repayments(
         )
 
     transactions_by_institution = await asyncio.gather(*inst_coroutines)
-    
+
     # STEP 3: We add up all the credit transactions for each institution
     repayments_sum = 0
     for transactions in transactions_by_institution:
         for transaction in transactions:
             if transaction["impact"] == "CREDIT":
                 repayments_sum += transaction["amount"]
-           
+
     return repayments_sum
 
 

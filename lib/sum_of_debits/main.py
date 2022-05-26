@@ -2,7 +2,7 @@
 
 import asyncio
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from pngme.api import AsyncClient
@@ -32,6 +32,9 @@ async def get_sum_of_debits(
         the sum total of all debit transaction amounts over the time window
             If there are no debit transactions for a given period, returns zero
     """
+    # Make sure the timestamps are of UTC timezone
+    utc_time = utc_time.astimezone(timezone.utc).replace(tzinfo=None)
+
     # STEP 1: get a list of all institutions for the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
@@ -46,13 +49,13 @@ async def get_sum_of_debits(
     for inst in institutions_w_depository:
         inst_coroutines.append(
             api_client.transactions.get(
-            user_uuid=user_uuid,
-            institution_id=inst["institution_id"],
-            utc_starttime=utc_starttime,
-            utc_endtime=utc_time,
-            account_types=["depository"],
+                user_uuid=user_uuid,
+                institution_id=inst["institution_id"],
+                utc_starttime=utc_starttime,
+                utc_endtime=utc_time,
+                account_types=["depository"],
+            )
         )
-    )
 
     transactions_by_institution = await asyncio.gather(*inst_coroutines)
 
@@ -64,6 +67,7 @@ async def get_sum_of_debits(
                 amount += transaction["amount"]
 
     return amount
+
 
 if __name__ == "__main__":
     # Mercy Otieno, mercy@pngme.demo.com, 254123456789

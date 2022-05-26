@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import asyncio
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from pngme.api import AsyncClient
 
@@ -28,6 +28,10 @@ async def get_count_institutions_with_open_loans(
     Returns:
         count of institutions with one or more opened loans
     """
+    # Make sure the timestamps are of UTC timezone
+    utc_starttime = utc_starttime.astimezone(timezone.utc).replace(tzinfo=None)
+    utc_endtime = utc_endtime.astimezone(timezone.utc).replace(tzinfo=None)
+
     # STEP 1: fetch list of institutions belonging to the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
@@ -72,13 +76,11 @@ if __name__ == "__main__":
     utc_starttime = utc_endtime - timedelta(days=30)
 
     async def main():
-        count_opened_loans = (
-            await get_count_institutions_with_open_loans(
-                client,
-                user_uuid,
-                utc_starttime,
-                utc_endtime,
-            )
+        count_opened_loans = await get_count_institutions_with_open_loans(
+            client,
+            user_uuid,
+            utc_starttime,
+            utc_endtime,
         )
 
         print(count_opened_loans)

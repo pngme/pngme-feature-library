@@ -2,13 +2,16 @@
 
 import asyncio
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from pngme.api import AsyncClient
 
 
 async def get_net_cash_flow(
-    api_client: AsyncClient, user_uuid: str, utc_starttime: datetime, utc_endtime: datetime
+    api_client: AsyncClient,
+    user_uuid: str,
+    utc_starttime: datetime,
+    utc_endtime: datetime,
 ) -> float:
     """Compute the net cash flow for a user over a given period.
 
@@ -24,6 +27,10 @@ async def get_net_cash_flow(
     Returns:
         the net cash flow amount (differencing cash-in (credit) and cash-out (debit) transactions)
     """
+    # Make sure the timestamps are of UTC timezone
+    utc_starttime = utc_starttime.astimezone(timezone.utc).replace(tzinfo=None)
+    utc_endtime = utc_endtime.astimezone(timezone.utc).replace(tzinfo=None)
+
     # STEP 1: fetch list of institutions belonging to the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
@@ -36,14 +43,15 @@ async def get_net_cash_flow(
     # STEP 2: Loop through all transactions adding the transactions
     inst_coroutines = []
     for institution in institutions_w_depository:
-        inst_coroutines.append(api_client.transactions.get(
-            user_uuid=user_uuid,
-            institution_id=institution["institution_id"],
-            utc_starttime=utc_starttime,
-            utc_endtime=utc_endtime,
-            account_types=["depository"],
+        inst_coroutines.append(
+            api_client.transactions.get(
+                user_uuid=user_uuid,
+                institution_id=institution["institution_id"],
+                utc_starttime=utc_starttime,
+                utc_endtime=utc_endtime,
+                account_types=["depository"],
+            )
         )
-    )
     transactions_by_institution = await asyncio.gather(*inst_coroutines)
 
     # STEP 3: Compute the net cash flow as the difference between cash-in and cash-out
@@ -55,7 +63,6 @@ async def get_net_cash_flow(
                 cash_in_amount += transaction["amount"]
             elif transaction["impact"] == "DEBIT":
                 cash_out_amount += transaction["amount"]
-
 
     total_net_cash_flow = cash_in_amount - cash_out_amount
 
@@ -81,5 +88,5 @@ if __name__ == "__main__":
         )
 
         print(net_cash_flow)
-    
+
     asyncio.run(main())

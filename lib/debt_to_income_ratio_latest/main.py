@@ -2,7 +2,7 @@
 
 import asyncio
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pngme.api import AsyncClient
 
 
@@ -10,7 +10,7 @@ async def get_debt_to_income_ratio_latest(
     api_client: AsyncClient,
     user_uuid: str,
     utc_starttime: datetime,
-    utc_endtime: datetime,    
+    utc_endtime: datetime,
 ) -> float:
     """Compute the debt to income ratio over a given period
 
@@ -29,7 +29,10 @@ async def get_debt_to_income_ratio_latest(
 
         None means that there are no loan balances nor credit transactions for the given time period.
     """
-    
+    # Make sure the timestamps are of UTC timezone
+    utc_starttime = utc_starttime.astimezone(timezone.utc).replace(tzinfo=None)
+    utc_endtime = utc_endtime.astimezone(timezone.utc).replace(tzinfo=None)
+
     # STEP 1: fetch list of institutions belonging to the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
@@ -38,7 +41,7 @@ async def get_debt_to_income_ratio_latest(
     for inst in institutions:
         if "loan" in inst["account_types"]:
             institutions_w_loan.append(inst)
-    
+
     # STEP 2: Prepare a list of tasks to fetch balances for each institution with loan accounts
     loan_inst_coroutines = []
     for institution in institutions_w_loan:
@@ -73,7 +76,7 @@ async def get_debt_to_income_ratio_latest(
 
     # STEP 4: Execute loan requests in parallel
     loan_balances_by_institution = await asyncio.gather(*loan_inst_coroutines)
-    
+
     # STEP 4.1: Include institution id to each loan balance record so we can sum the balance for each one
     loan_records_list = []
     for ix, balance_records in enumerate(loan_balances_by_institution):
@@ -85,7 +88,9 @@ async def get_debt_to_income_ratio_latest(
             loan_records_list.append(balance_dict)
 
     # STEP 5: Execute depository requests in parallel
-    depository_transactions_by_institution = await asyncio.gather(*depository_inst_coroutines)
+    depository_transactions_by_institution = await asyncio.gather(
+        *depository_inst_coroutines
+    )
 
     # STEP 5.1: Filter out transactions that are not credit transactions
     depository_credit_records_list = []
@@ -97,7 +102,7 @@ async def get_debt_to_income_ratio_latest(
                 depository_credit_records_list.append(dict(transaction_record))
 
     # STEP 5.2: Early exit for edge cases
-    
+
     ## if there is no updated balance since the start time, then return None
     if not loan_records_list and not depository_credit_records_list:
         return None
@@ -111,7 +116,9 @@ async def get_debt_to_income_ratio_latest(
         return float("inf")
 
     # STEP 6: Here we sort by timestamp so latest balances are on top
-    loan_records_list = sorted(loan_records_list, key=lambda x: x["timestamp"], reverse=True)
+    loan_records_list = sorted(
+        loan_records_list, key=lambda x: x["timestamp"], reverse=True
+    )
 
     # STEP 7: Then we loop through all balances per institution and account and store the latest balance
     latest_balances = {}
@@ -119,7 +126,7 @@ async def get_debt_to_income_ratio_latest(
         key = (loan_record["institution_id"], loan_record["account_id"])
         if key not in latest_balances:
             latest_balances[key] = loan_record["balance"]
-    
+
     # STEP 8: Sum all the balances
     sum_of_loan_balances_latest = sum(latest_balances.values())
 
@@ -133,7 +140,7 @@ async def get_debt_to_income_ratio_latest(
     ###  which could happen if parsed amounts are zero or if the institution has
     ###  negative credit transactions)
     if sum_of_depository_credit_transactions == 0:
-        return float('inf')
+        return float("inf")
     # STEP 10: Compute debt to income ratio
     ratio = sum_of_loan_balances_latest / sum_of_depository_credit_transactions
     return ratio

@@ -2,7 +2,7 @@
 
 import asyncio
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import pandas as pd  # type: ignore
@@ -23,6 +23,10 @@ async def get_standard_deviation_of_week_to_week_sum_of_credits(
     Returns:
         Standard deviation of week-to-week sum of credits
     """
+    # Make sure the timestamps are of UTC timezone
+    utc_starttime = utc_starttime.astimezone(timezone.utc).replace(tzinfo=None)
+    utc_endtime = utc_endtime.astimezone(timezone.utc).replace(tzinfo=None)
+
     # STEP 1: fetch list of institutions belonging to the user
     institutions = await client.institutions.get(user_uuid=user_uuid)
 
@@ -64,9 +68,10 @@ async def get_standard_deviation_of_week_to_week_sum_of_credits(
     if credit_df.empty:
         return None
 
-    credit_df["timestamp"] = credit_df["timestamp"].astype('datetime64[s]')
-    credit_df.insert(0, "date", pd.to_datetime(credit_df.timestamp, unit="s"))
-    std = credit_df.set_index("date").resample("W").amount.sum().std()
+    credit_df["timestamp"] = pd.to_datetime(credit_df["timestamp"])
+    credit_df.insert(0, "yyyymmdd", pd.to_datetime(credit_df["timestamp"]))
+
+    std = credit_df.set_index("yyyymmdd").resample("W").amount.sum().std()
     return std
 
 
@@ -89,7 +94,6 @@ if __name__ == "__main__":
                 utc_endtime=now,
             )
         )
-        
 
         print(standard_deviation_of_week_to_week_sum_of_credits_0_84)
 

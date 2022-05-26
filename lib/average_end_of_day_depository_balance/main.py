@@ -2,7 +2,7 @@
 
 import asyncio
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import pandas as pd
@@ -29,6 +29,10 @@ async def get_average_end_of_day_depository_balance(
     Returns:
         the average end-of-day total balance over each window
     """
+    # STEP 0: Make sure the timestamps are of UTC timezone
+    utc_starttime = utc_starttime.astimezone(timezone.utc)
+    utc_endtime = utc_endtime.astimezone(timezone.utc)
+
     # STEP 1: fetch list of institutions belonging to the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
@@ -77,10 +81,9 @@ async def get_average_end_of_day_depository_balance(
     balances_df = pd.DataFrame(record_list)
 
     # Sort and create a column for day, filter by time window
-    balances_df["timestamp"] = balances_df["timestamp"].astype('datetime64[D]')
+    balances_df["timestamp"] = pd.to_datetime(balances_df["timestamp"])
     balances_df = balances_df.sort_values("timestamp")
-    balances_df["yyyymmdd"] = pd.to_datetime(balances_df["timestamp"])
-    balances_df["yyyymmdd"] = balances_df["yyyymmdd"].dt.floor("D")
+    balances_df["yyyymmdd"] = balances_df["timestamp"].dt.floor("D")
 
     # Get end of day balances,
     # If an account changes balances three times a day in sequence, i.e. $100, $20, $120),
