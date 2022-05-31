@@ -2,7 +2,7 @@
 
 import asyncio
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Optional
 
 from pngme.api import AsyncClient

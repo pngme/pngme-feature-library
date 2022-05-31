@@ -2,7 +2,7 @@
 import asyncio
 import os
 
-from datetime import datetime, timedelta, timezone, tzinfo
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import pandas as pd  # type: ignore
@@ -33,7 +33,7 @@ async def get_average_end_of_day_balance(
     # Making the timestamps timezone aware to comply with the between() method called below
     utc_starttime = utc_starttime.replace(tzinfo=timezone.utc)
     utc_endtime = utc_endtime.replace(tzinfo=timezone.utc)
-    
+
     # STEP 1: fetch list of institutions belonging to the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 

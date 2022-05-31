@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 import asyncio
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Optional, Tuple
 
 from pngme.api import AsyncClient
