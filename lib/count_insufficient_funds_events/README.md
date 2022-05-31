@@ -10,7 +10,7 @@ source .venv/bin/activate
 2. Install the dependencies:
 
 ```bash
-pip3 install -r requirements.txt
+pip3 install -r requirements.txt --upgrade
 ```
 
 3. Set the `PNGME_TOKEN` environment variable using your API token from [admin.pngme.com](https://admin.pngme.com):
