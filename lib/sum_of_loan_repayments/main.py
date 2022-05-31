@@ -30,10 +30,6 @@ async def get_sum_of_loan_repayments(
     Returns:
         the sum total of all loan repayments (i.e. credit transaction amounts across all loan accounts) over the predefined ranges.
     """
-    # Make sure the timestamps are of UTC timezone
-    utc_starttime = utc_starttime.astimezone(timezone.utc).replace(tzinfo=None)
-    utc_endtime = utc_endtime.astimezone(timezone.utc).replace(tzinfo=None)
-
     # STEP 1: get a list of all institutions for the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 

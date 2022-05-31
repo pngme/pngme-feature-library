@@ -26,10 +26,6 @@ async def get_sum_of_depository_balances_latest(
     Returns:
         The latest balance summed across all depository accounts
     """
-    # Make sure the timestamps are of UTC timezone
-    utc_starttime = utc_starttime.astimezone(timezone.utc).replace(tzinfo=None)
-    utc_endtime = utc_endtime.astimezone(timezone.utc).replace(tzinfo=None)
-
     # STEP 1: get a list of all institutions for the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 

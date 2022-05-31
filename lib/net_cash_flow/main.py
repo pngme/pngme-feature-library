@@ -27,10 +27,6 @@ async def get_net_cash_flow(
     Returns:
         the net cash flow amount (differencing cash-in (credit) and cash-out (debit) transactions)
     """
-    # Make sure the timestamps are of UTC timezone
-    utc_starttime = utc_starttime.astimezone(timezone.utc).replace(tzinfo=None)
-    utc_endtime = utc_endtime.astimezone(timezone.utc).replace(tzinfo=None)
-
     # STEP 1: fetch list of institutions belonging to the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 

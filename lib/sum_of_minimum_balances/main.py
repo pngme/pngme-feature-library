@@ -25,10 +25,6 @@ async def get_sum_of_minimum_balances(
         Sum of minimum balance observed for all depository accounts, in a given time window.
         If balance information was not observed, it returns None.
     """
-    # Make sure the timestamps are of UTC timezone
-    utc_starttime = utc_starttime.astimezone(timezone.utc).replace(tzinfo=None)
-    utc_endtime = utc_endtime.astimezone(timezone.utc).replace(tzinfo=None)
-
     # STEP 1: get a list of all institutions for the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 

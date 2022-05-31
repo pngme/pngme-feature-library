@@ -23,10 +23,6 @@ async def get_standard_deviation_of_week_to_week_sum_of_credits(
     Returns:
         Standard deviation of week-to-week sum of credits
     """
-    # Make sure the timestamps are of UTC timezone
-    utc_starttime = utc_starttime.astimezone(timezone.utc).replace(tzinfo=None)
-    utc_endtime = utc_endtime.astimezone(timezone.utc).replace(tzinfo=None)
-
     # STEP 1: fetch list of institutions belonging to the user
     institutions = await client.institutions.get(user_uuid=user_uuid)
 

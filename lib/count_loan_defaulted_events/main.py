@@ -25,10 +25,6 @@ async def get_count_loan_defaulted_events(
     Returns:
         count of LoanDefaulted events within the given time window
     """
-    # Make sure the timestamps are of UTC timezone
-    utc_starttime = utc_starttime.astimezone(timezone.utc).replace(tzinfo=None)
-    utc_endtime = utc_endtime.astimezone(timezone.utc).replace(tzinfo=None)
-
     # STEP 1: fetch a list of the user's institutions with loan-type data
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
     institutions_w_loan = []

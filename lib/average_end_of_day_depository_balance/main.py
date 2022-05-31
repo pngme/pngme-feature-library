@@ -29,9 +29,9 @@ async def get_average_end_of_day_depository_balance(
     Returns:
         the average end-of-day total balance over each window
     """
-    # STEP 0: Make sure the timestamps are of UTC timezone
-    utc_starttime = utc_starttime.astimezone(timezone.utc)
-    utc_endtime = utc_endtime.astimezone(timezone.utc)
+    # Making the timestamps timezone aware to comply with the between() method called below
+    utc_starttime = utc_starttime.replace(tzinfo=timezone.utc)
+    utc_endtime = utc_endtime.replace(tzinfo=timezone.utc)
 
     # STEP 1: fetch list of institutions belonging to the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)

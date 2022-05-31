@@ -32,9 +32,6 @@ async def get_sum_of_debits(
         the sum total of all debit transaction amounts over the time window
             If there are no debit transactions for a given period, returns zero
     """
-    # Make sure the timestamps are of UTC timezone
-    utc_time = utc_time.astimezone(timezone.utc).replace(tzinfo=None)
-
     # STEP 1: get a list of all institutions for the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
