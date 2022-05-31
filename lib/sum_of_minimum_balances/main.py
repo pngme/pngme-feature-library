@@ -33,7 +33,7 @@ async def get_sum_of_minimum_balances(
     for inst in institutions:
         if "depository" in inst["account_types"]:
             institutions_w_depository.append(inst)
-    
+
     # STEP 2: get a list of all balances for each institution
     inst_coroutines = []
     for inst in institutions_w_depository:
@@ -44,8 +44,8 @@ async def get_sum_of_minimum_balances(
                 utc_starttime=utc_starttime,
                 utc_endtime=utc_endtime,
                 account_types=["depository"],
+            )
         )
-    )
 
     balances_by_institution = await asyncio.gather(*inst_coroutines)
     balances_flattened = []
@@ -58,7 +58,6 @@ async def get_sum_of_minimum_balances(
             balance_dict["institution_id"] = institution_id
 
             balances_flattened.append(balance_dict)
-        
 
     # We only care about the minimum balance observed for each account of each institution
     min_balances = {}
@@ -68,7 +67,7 @@ async def get_sum_of_minimum_balances(
             min_balances[key] = record["balance"]
         else:
             min_balances[key] = min(min_balances[key], record["balance"])
-    
+
     sum_of_account_minimum_balances = sum(min_balances.values())
 
     return sum_of_account_minimum_balances

@@ -3,7 +3,6 @@ import asyncio
 import os
 from datetime import datetime, timedelta
 
-from typing import Tuple
 from pngme.api import AsyncClient
 
 
@@ -26,7 +25,6 @@ async def get_count_loan_defaulted_events(
     Returns:
         count of LoanDefaulted events within the given time window
     """
-
     # STEP 1: fetch a list of the user's institutions with loan-type data
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
     institutions_w_loan = []

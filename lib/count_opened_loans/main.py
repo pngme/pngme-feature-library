@@ -72,13 +72,11 @@ if __name__ == "__main__":
     utc_starttime = utc_endtime - timedelta(days=30)
 
     async def main():
-        count_opened_loans = (
-            await get_count_institutions_with_open_loans(
-                client,
-                user_uuid,
-                utc_starttime,
-                utc_endtime,
-            )
+        count_opened_loans = await get_count_institutions_with_open_loans(
+            client,
+            user_uuid,
+            utc_starttime,
+            utc_endtime,
         )
 
         print(count_opened_loans)

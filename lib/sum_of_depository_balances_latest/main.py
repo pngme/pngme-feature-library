@@ -26,7 +26,6 @@ async def get_sum_of_depository_balances_latest(
     Returns:
         The latest balance summed across all depository accounts
     """
-
     # STEP 1: get a list of all institutions for the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
@@ -46,8 +45,8 @@ async def get_sum_of_depository_balances_latest(
                 utc_starttime=utc_starttime,
                 utc_endtime=utc_endtime,
                 account_types=["depository"],
+            )
         )
-    )
 
     balances_by_institution = await asyncio.gather(*inst_coroutines)
 
@@ -60,10 +59,12 @@ async def get_sum_of_depository_balances_latest(
             balance_dict["institution_id"] = institution_id
 
             balances_flattened.append(balance_dict)
-    
+
     # STEP 4: Here we sort by timestamp so latest balances are on top
-    balances_flattened = sorted(balances_flattened, key=lambda x: x["timestamp"], reverse=True)
-    
+    balances_flattened = sorted(
+        balances_flattened, key=lambda x: x["timestamp"], reverse=True
+    )
+
     # STEP 5: Then we loop through all balances per institution and account and store the latest balance
     latest_balances = {}
     for loan_record in balances_flattened:
@@ -71,7 +72,7 @@ async def get_sum_of_depository_balances_latest(
         if key not in latest_balances:
             # As we go top-down, we only need to store the first balance we found for each institution+account
             latest_balances[key] = loan_record["balance"]
-    
+
     # STEP 6: Finally, we can sum all the balances
     sum_of_balances_latest = sum(latest_balances.values())
 
@@ -97,4 +98,5 @@ if __name__ == "__main__":
             utc_endtime=now,
         )
         print(sum_of_balances_latest)
+
     asyncio.run(main())

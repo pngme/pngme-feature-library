@@ -52,7 +52,6 @@ async def get_count_loan_repayment_events(
     return len(all_alerts)
 
 
-
 if __name__ == "__main__":
     # Mercy Otieno, mercy@pngme.demo.com, 254123456789
     user_uuid = "958a5ae8-f3a3-41d5-ae48-177fdc19e3f4"

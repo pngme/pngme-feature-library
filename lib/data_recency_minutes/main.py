@@ -25,7 +25,6 @@ async def get_data_recency_minutes(
     Returns:
         Return the time in minutes between utc_endtime and the most recent financial event or alert
     """
-
     # STEP 1: fetch list of institutions belonging to the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 

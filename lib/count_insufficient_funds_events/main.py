@@ -75,5 +75,5 @@ if __name__ == "__main__":
             utc_endtime,
         )
         print(count_insufficient_funds_events)
-    
+
     asyncio.run(main())

@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 
 from pngme.api import AsyncClient
 
+
 async def get_count_betting_and_lottery_events(
     api_client: AsyncClient,
     user_uuid: str,
@@ -24,7 +25,7 @@ async def get_count_betting_and_lottery_events(
     """
     # STEP 1: fetch list of institutions belonging to the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
-    
+
     # subset to only fetch data for institutions known to contain depository-type accounts for the user
     institutions_w_depository = []
     for inst in institutions:

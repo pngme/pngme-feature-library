@@ -46,13 +46,13 @@ async def get_sum_of_credits(
     for inst in institutions_w_depository:
         inst_coroutines.append(
             api_client.transactions.get(
-            user_uuid=user_uuid,
-            institution_id=inst["institution_id"],
-            utc_starttime=utc_starttime,
-            utc_endtime=utc_time,
-            account_types=["depository"],
+                user_uuid=user_uuid,
+                institution_id=inst["institution_id"],
+                utc_starttime=utc_starttime,
+                utc_endtime=utc_time,
+                account_types=["depository"],
+            )
         )
-    )
 
     transactions_by_institution = await asyncio.gather(*inst_coroutines)
 
@@ -64,6 +64,7 @@ async def get_sum_of_credits(
                 amount += transaction["amount"]
 
     return amount
+
 
 if __name__ == "__main__":
     # Mercy Otieno, mercy@pngme.demo.com, 254123456789

@@ -2,7 +2,7 @@
 import asyncio
 import os
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import pandas as pd  # type: ignore
@@ -30,6 +30,10 @@ async def get_average_end_of_day_balance(
     Returns:
         the average end-of-day total balance over each window
     """
+    # Making the timestamps timezone aware to comply with the between() method called below
+    utc_starttime = utc_starttime.replace(tzinfo=timezone.utc)
+    utc_endtime = utc_endtime.replace(tzinfo=timezone.utc)
+
     # STEP 1: fetch list of institutions belonging to the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
@@ -69,8 +73,8 @@ async def get_average_end_of_day_balance(
             balance_dict["institution_id"] = institution_id
 
             record_list.append(balance_dict)
-            
-    # if no data is present, consider the sum of balances to be non-existing 
+
+    # if no data is present, consider the sum of balances to be non-existing
     if len(record_list) == 0:
         return None
 
@@ -78,10 +82,9 @@ async def get_average_end_of_day_balance(
     balances_df = pd.DataFrame(record_list)
 
     # Sort and create a column for day, filter by time window
-    balances_df["timestamp"] = balances_df["timestamp"].astype('datetime64[D]')
+    balances_df["timestamp"] = pd.to_datetime(balances_df["timestamp"])
     balances_df = balances_df.sort_values("timestamp")
-    balances_df["yyyymmdd"] = pd.to_datetime(balances_df["timestamp"])
-    balances_df["yyyymmdd"] = balances_df["yyyymmdd"].dt.floor("D")
+    balances_df["yyyymmdd"] = balances_df["timestamp"].dt.floor("D")
 
     # Get end of day balances,
     # If an account changes balances three times a day in sequence, i.e. $100, $20, $120),

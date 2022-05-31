@@ -64,9 +64,9 @@ async def get_standard_deviation_of_week_to_week_sum_of_credits(
     if credit_df.empty:
         return None
 
-    credit_df["timestamp"] = credit_df["timestamp"].astype('datetime64[s]')
-    credit_df.insert(0, "date", pd.to_datetime(credit_df.timestamp, unit="s"))
-    std = credit_df.set_index("date").resample("W").amount.sum().std()
+    credit_df["timestamp"] = pd.to_datetime(credit_df["timestamp"])
+    
+    std = credit_df.set_index("timestamp").resample("W").amount.sum().std()
     return std
 
 
@@ -89,7 +89,6 @@ if __name__ == "__main__":
                 utc_endtime=now,
             )
         )
-        
 
         print(standard_deviation_of_week_to_week_sum_of_credits_0_84)
 
