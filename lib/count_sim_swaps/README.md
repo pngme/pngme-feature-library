@@ -1,4 +1,4 @@
-# Data recency (in minutes)
+# Count SIM swaps
 
 1. Create and activate a virtual environment:
 

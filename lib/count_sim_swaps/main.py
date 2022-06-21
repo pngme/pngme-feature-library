@@ -1,6 +1,7 @@
 import asyncio
 from datetime import datetime, timezone
 import os
+from typing import Optional
 from pngme.api import AsyncClient
 
 
@@ -9,7 +10,7 @@ async def get_count_of_sim_swaps(
     user_uuid: str,
     utc_timestamp: datetime,
     semi_window_days: int,
-) -> int:
+) -> Optional[int]:
     """ Returns the number of users with same device as the provided one within a time window
 
         This number of users can be used to infer the number of sim swaps, as they reflect how the same
