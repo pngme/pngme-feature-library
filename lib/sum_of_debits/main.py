@@ -57,13 +57,18 @@ async def get_sum_of_debits(
     transactions_by_institution = await asyncio.gather(*inst_coroutines)
 
     # STEP 3: now we sum up all the amounts of debit transactions for each institution
-    amount = 0
+    total = 0
+    count = 0
     for transactions in transactions_by_institution:
         for transaction in transactions:
             if transaction["impact"] == "DEBIT" and transaction["amount"] is not None:
-                amount += transaction["amount"]
+                total += transaction["amount"]
+                count += 1
 
-    return amount
+    if count == 0:
+        return None
+
+    return total
 
 
 if __name__ == "__main__":
@@ -77,12 +82,12 @@ if __name__ == "__main__":
     utc_starttime = utc_endtime - timedelta(days=30)
 
     async def main():
-        soc = await get_sum_of_debits(
+        sum_of_debits = await get_sum_of_debits(
             client,
             user_uuid,
             utc_starttime,
             utc_endtime,
         )
-        print(soc)
+        print(sum_of_debits)
 
     asyncio.run(main())

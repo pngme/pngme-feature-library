@@ -15,10 +15,7 @@ async def get_average_end_of_day_depository_balance(
     utc_starttime: datetime,
     utc_endtime: datetime,
 ) -> Optional[float]:
-    """Calculates the average end-of-day depository balance total for a user across all
-       of their accounts for a given time window.
-
-       If no balance data was found, return None.
+    """Average of daily of total balance held in all depository accounts.
 
     Args:
         api_client: Pngme Async API client
@@ -27,13 +24,12 @@ async def get_average_end_of_day_depository_balance(
         utc_endtime: the UTC time to end the time window
 
     Returns:
-        the average end-of-day total balance over each window
+        If no balance data was found, return None.
     """
     # Making the timestamps timezone aware to comply with the between() method called below
     utc_starttime = utc_starttime.replace(tzinfo=timezone.utc)
     utc_endtime = utc_endtime.replace(tzinfo=timezone.utc)
 
-    # STEP 1: fetch list of institutions belonging to the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
     # subset to only fetch data for institutions known to contain depository-type accounts for the user
@@ -42,59 +38,49 @@ async def get_average_end_of_day_depository_balance(
         if "depository" in inst["account_types"]:
             institutions_w_depository.append(inst)
 
-    # STEP 2: Construct timerange since beginning of time
-    # as default /balances endpoint only returns the latest balance
-    today = datetime.today()
-    all_pages_utc_endtime = datetime(today.year, today.month, today.day)
-    all_pages_starttime = all_pages_utc_endtime - timedelta(days=1e5)
-
-    # STEP 3: fetch all balances for each institution using parallel calls
+    # We pull an additional 10 days of balance records before the time window because
+    # balances are forward filled in time, so this gives us a higher likelihood of
+    # beginning the period of interest with valid balance records for each institution
+    # rather than containing null values for each institution.
     inst_coroutines = []
     for institution in institutions_w_depository:
         inst_coroutines.append(
             api_client.balances.get(
                 user_uuid=user_uuid,
                 institution_id=institution["institution_id"],
-                utc_starttime=all_pages_starttime,
-                utc_endtime=all_pages_utc_endtime,
+                utc_starttime=utc_starttime - timedelta(days=10),
+                utc_endtime=utc_endtime,
                 account_types=["depository"],
             )
         )
 
     balances_by_institution = await asyncio.gather(*inst_coroutines)
 
-    # STEP 4: flatten all balances from all institutions
-    record_list = []
+    balances_flattened = []
     for ix, balances in enumerate(balances_by_institution):
-        institution_id = institutions[ix]["institution_id"]
+        institution_id = institutions_w_depository[ix]["institution_id"]
+        # We append the institution_id to each record so that we can group the records
+        # by institution_id and account_id
         for balance in balances:
-            balance_dict = dict(balance)
-            balance_dict["institution_id"] = institution_id
+            balance["institution_id"] = institution_id
+            balances_flattened.append(balance)
 
-            record_list.append(balance_dict)
-
-    # if no data is present, consider the sum of balances to be non-existing
-    if len(record_list) == 0:
+    if len(balances_flattened) == 0:
         return None
 
-    # STEP 5: convert to pandas dataframe to help with the resampling
-    balances_df = pd.DataFrame(record_list)
-
-    # Sort and create a column for day, filter by time window
+    balances_df = pd.DataFrame(balances_flattened)
     balances_df["timestamp"] = pd.to_datetime(balances_df["timestamp"])
     balances_df = balances_df.sort_values("timestamp")
     balances_df["yyyymmdd"] = balances_df["timestamp"].dt.floor("D")
 
-    # Get end of day balances,
-    # If an account changes balances three times a day in sequence, i.e. $100, $20, $120),
-    # take the last one ($120)
+    # Find last balance record on any given day
     eod_balances = (
         balances_df.groupby(["yyyymmdd", "account_id", "institution_id"])
         .tail(1)
         .set_index("yyyymmdd")
     )
 
-    # First Forward fill missing days
+    # Carry balance amounts forward in time
     ffilled_balances = (
         eod_balances.groupby(["institution_id", "account_id"])["balance"]
         .resample("1D", kind="timestamp")
@@ -102,19 +88,16 @@ async def get_average_end_of_day_depository_balance(
         .reset_index()
     )
 
-    # Filter time window for the provided period
     ffilled_balances_in_time_window = ffilled_balances[
         ffilled_balances["yyyymmdd"].between(utc_starttime, utc_endtime)
     ]
 
-    # Average all balances and calculate a global sum
-    avg_daily_balance = float(
-        ffilled_balances_in_time_window.groupby(["institution_id", "account_id"])
-        .mean()
-        .sum()
-    )
+    if len(ffilled_balances_in_time_window) == 0:
+        return None
 
-    return avg_daily_balance
+    daily_total_balance = ffilled_balances_in_time_window.groupby(["yyyymmdd"])["balance"].sum()
+    average_end_of_day_depository_balance = daily_total_balance.mean()
+    return average_end_of_day_depository_balance
 
 
 if __name__ == "__main__":
