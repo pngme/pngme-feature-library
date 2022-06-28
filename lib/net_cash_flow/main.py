@@ -3,6 +3,7 @@
 import asyncio
 import os
 from datetime import datetime, timedelta
+from typing import Optional
 
 from pngme.api import AsyncClient
 
@@ -12,7 +13,7 @@ async def get_net_cash_flow(
     user_uuid: str,
     utc_starttime: datetime,
     utc_endtime: datetime,
-) -> float:
+) -> Optional[float]:
     """Compute the net cash flow for a user over a given period.
 
     No currency conversions are performed. Net cash flow is calculated by
@@ -53,16 +54,21 @@ async def get_net_cash_flow(
     # STEP 3: Compute the net cash flow as the difference between cash-in and cash-out
     cash_in_amount = 0
     cash_out_amount = 0
+    count = 0
     for transactions in transactions_by_institution:
         for transaction in transactions:
             if transaction["impact"] == "CREDIT":
                 cash_in_amount += transaction["amount"]
+                count += 1
             elif transaction["impact"] == "DEBIT":
                 cash_out_amount += transaction["amount"]
+                count += 1
 
-    total_net_cash_flow = cash_in_amount - cash_out_amount
+    if count == 0:
+        return None
 
-    return total_net_cash_flow
+    net_cash_flow = cash_in_amount - cash_out_amount
+    return net_cash_flow
 
 
 if __name__ == "__main__":

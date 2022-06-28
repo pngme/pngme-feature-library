@@ -4,6 +4,7 @@ import asyncio
 import os
 from datetime import datetime, timedelta
 from pngme.api import AsyncClient
+from typing import Optional
 
 
 async def get_debt_to_income_ratio_latest(
@@ -11,7 +12,7 @@ async def get_debt_to_income_ratio_latest(
     user_uuid: str,
     utc_starttime: datetime,
     utc_endtime: datetime,
-) -> float:
+) -> Optional[float]:
     """Compute the debt to income ratio over a given period
 
     Debt: Sum of loan balances across all loan accounts over a given period

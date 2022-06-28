@@ -2,6 +2,7 @@
 import asyncio
 import os
 from datetime import datetime, timedelta
+from typing import Optional
 
 from pngme.api import AsyncClient
 
@@ -11,7 +12,7 @@ async def get_sum_of_depository_balances_latest(
     user_uuid: str,
     utc_starttime: datetime,
     utc_endtime: datetime,
-) -> float:
+) -> Optional[float]:
     """Return the latest balance summed across all depository accounts.
 
     If a depository account does not contain any balance notifications within the time window,
@@ -25,6 +26,7 @@ async def get_sum_of_depository_balances_latest(
 
     Returns:
         The latest balance summed across all depository accounts
+        If no balance data was found, return None.
     """
     # STEP 1: get a list of all institutions for the user
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
@@ -59,6 +61,9 @@ async def get_sum_of_depository_balances_latest(
             balance_dict["institution_id"] = institution_id
 
             balances_flattened.append(balance_dict)
+
+    if len(balances_flattened) == 0:
+        return None
 
     # STEP 4: Here we sort by timestamp so latest balances are on top
     balances_flattened = sorted(
