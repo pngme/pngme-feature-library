@@ -1,4 +1,4 @@
-# Count SIM swaps
+# Count shared device ids across different users
 
 1. Create and activate a virtual environment:
 

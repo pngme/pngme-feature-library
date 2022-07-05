@@ -5,7 +5,7 @@ from typing import Optional
 from pngme.api import AsyncClient
 
 
-async def get_count_of_sim_swaps(
+async def get_count_user_shared_device_ids(
     api_client: AsyncClient,
     user_uuid: str,
     utc_timestamp: datetime,
@@ -13,13 +13,13 @@ async def get_count_of_sim_swaps(
 ) -> Optional[int]:
     """ Returns the number of users with same device as the provided one within a time window
 
-        This number of users can be used to infer the number of sim swaps, as they reflect how the same
+        i.e.: This number of users can be used to infer the number of sim swaps, as they reflect how the same
         device is used with different phone numbers.
     
     Args:
         api_client: Pngme Async API client
         user_uuid: Pngme mobile phone user_uuid
-        utc_timestamp: central time to search for sim swaps
+        utc_timestamp: central time to search for shared device ids
         semi_window_days: devices are searched from (utc_timestamp - semi_window_days) to (utc_timestamp + semi_window_days)
         
     Returns:
@@ -68,12 +68,12 @@ if __name__ == "__main__":
     utc_timestamp = datetime(2021, 11, 17, tzinfo=timezone.utc)
 
     async def main():
-        count_of_sim_swaps = await get_count_of_sim_swaps(
+        count_of_user_shared_device_ids = await get_count_user_shared_device_ids(
             client,
             user_uuid,
             utc_timestamp,
             7,
         )
-        print(count_of_sim_swaps)
+        print(count_of_user_shared_device_ids)
 
     asyncio.run(main())
