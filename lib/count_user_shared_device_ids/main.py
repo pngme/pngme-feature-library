@@ -50,7 +50,7 @@ async def get_count_user_shared_device_ids(
     count = 0
     for same_device_user in same_device_users:
         updated_at = datetime.fromisoformat(same_device_user["updated_at"])
-        if updated_at <= utc_endtime and updated_at >= utc_starttime:
+        if updated_at <= utc_endtime.replace(tzinfo=timezone.utc) and updated_at >= utc_starttime.replace(tzinfo=timezone.utc):
             count += 1
 
     return count
