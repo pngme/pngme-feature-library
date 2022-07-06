@@ -45,10 +45,13 @@ async def get_count_user_shared_device_ids(
     same_device_users = await api_client.users.get(search=user["device_id"])
 
     # STEP 5: Return the number of users with same device id within the time window
-    #         Important! The original user is included in the response only if its
-    #         updated_at is within the time window too!
     count = 0
     for same_device_user in same_device_users:
+        if same_device_user["uuid"] == user["uuid"]:
+            # As we want to provide the numer of OTHER users sharing the device id,
+            # we need to exclude the original user. This also removes the complexity
+            # of the original user being counted only if its updated_at is within the time window
+            continue
         updated_at = datetime.fromisoformat(same_device_user["updated_at"])
         if updated_at <= utc_endtime.replace(tzinfo=timezone.utc) and updated_at >= utc_starttime.replace(tzinfo=timezone.utc):
             count += 1
