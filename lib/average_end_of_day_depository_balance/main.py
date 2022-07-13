@@ -5,8 +5,15 @@ import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-import pandas as pd
+import pandas as pd  # type: ignore
 from pngme.api import AsyncClient
+
+# We pull additional days of balance records before the time window because balances are
+# forward filled in time, so this gives us a higher likelihood of beginning the period
+# of interest with valid balance records for each institution rather than containing
+# null values for each institution. We also use this to limit the number of days we
+# forward fill a given balance observation to avoid overweighting stale data.
+BALANCE_VALID_FOR_DAYS = 10
 
 
 async def get_average_end_of_day_depository_balance(
@@ -38,23 +45,29 @@ async def get_average_end_of_day_depository_balance(
         if "depository" in inst["account_types"]:
             institutions_w_depository.append(inst)
 
-    # We pull an additional 10 days of balance records before the time window because
-    # balances are forward filled in time, so this gives us a higher likelihood of
-    # beginning the period of interest with valid balance records for each institution
-    # rather than containing null values for each institution.
-    inst_coroutines = []
+    balances_coroutines = []
+    transactions_coroutines = []
     for institution in institutions_w_depository:
-        inst_coroutines.append(
+        balances_coroutines.append(
             api_client.balances.get(
                 user_uuid=user_uuid,
                 institution_id=institution["institution_id"],
-                utc_starttime=utc_starttime - timedelta(days=10),
+                utc_starttime=utc_starttime - timedelta(days=BALANCE_VALID_FOR_DAYS),
                 utc_endtime=utc_endtime,
                 account_types=["depository"],
             )
         )
+        transactions_coroutines.append(
+            api_client.transactions.get(
+                user_uuid=user_uuid,
+                institution_id=institution["institution_id"],
+                utc_starttime=utc_starttime,
+                utc_endtime=utc_endtime,
+            )
+        )
 
-    balances_by_institution = await asyncio.gather(*inst_coroutines)
+    balances_by_institution = await asyncio.gather(*balances_coroutines)
+    transactions_by_institution = await asyncio.gather(*transactions_coroutines)
 
     balances_flattened = []
     for ix, balances in enumerate(balances_by_institution):
@@ -67,6 +80,16 @@ async def get_average_end_of_day_depository_balance(
 
     if len(balances_flattened) == 0:
         return None
+
+    transactions_flattened = []
+    for ix, transactions in enumerate(transactions_by_institution):
+        for transaction in transactions:
+            transactions_flattened.append(transaction)
+
+    transactions_df = pd.DataFrame(transactions_flattened)
+    transactions_df["timestamp"] = pd.to_datetime(transactions_df["timestamp"])
+    transactions_df = transactions_df.sort_values("timestamp")
+    transactions_df["yyyymmdd"] = transactions_df["timestamp"].dt.floor("D")
 
     balances_df = pd.DataFrame(balances_flattened)
     balances_df["timestamp"] = pd.to_datetime(balances_df["timestamp"])
@@ -81,10 +104,10 @@ async def get_average_end_of_day_depository_balance(
     )
 
     # Carry balance amounts forward in time
+    index = pd.date_range(utc_starttime, utc_endtime, freq="D", name="yyyymmdd")
     ffilled_balances = (
         eod_balances.groupby(["institution_id", "account_id"])["balance"]
-        .resample("1D", kind="timestamp")
-        .ffill()
+        .apply(lambda df: df.reindex(index).ffill(limit=BALANCE_VALID_FOR_DAYS))
         .reset_index()
     )
 
@@ -95,9 +118,18 @@ async def get_average_end_of_day_depository_balance(
     if len(ffilled_balances_in_time_window) == 0:
         return None
 
-    daily_total_balance = ffilled_balances_in_time_window.groupby(["yyyymmdd"])["balance"].sum()
-    average_end_of_day_depository_balance = daily_total_balance.mean()
-    return average_end_of_day_depository_balance
+    daily_total_balance = ffilled_balances_in_time_window.groupby(["yyyymmdd"])[
+        "balance"
+    ].sum(min_count=1)
+
+    # Include only balances on days the user received a balance or transaction
+    active_days = pd.concat(
+        [balances_df["yyyymmdd"], transactions_df["yyyymmdd"]]
+    ).unique()
+    row_mask = daily_total_balance.index.isin(active_days)
+    daily_total_balance_on_active_days = daily_total_balance.loc[row_mask]
+
+    return daily_total_balance_on_active_days.mean()
 
 
 if __name__ == "__main__":
@@ -111,14 +143,12 @@ if __name__ == "__main__":
     utc_starttime = utc_endtime - timedelta(days=30)
 
     async def main():
-
         average_end_of_day_balance = await get_average_end_of_day_depository_balance(
             api_client=client,
             user_uuid=user_uuid,
             utc_starttime=utc_starttime,
             utc_endtime=utc_endtime,
         )
-
         print(average_end_of_day_balance)
 
     asyncio.run(main())
