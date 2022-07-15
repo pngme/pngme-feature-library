@@ -5,8 +5,15 @@ import os
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-import pandas as pd
+import pandas as pd  # type: ignore
 from pngme.api import AsyncClient
+
+# We pull additional days of balance records before the time window because balances are
+# forward filled in time, so this gives us a higher likelihood of beginning the period
+# of interest with valid balance records for each institution rather than containing
+# null values for each institution. We also use this to limit the number of days we
+# forward fill a given balance observation to avoid overweighting stale data.
+BALANCE_VALID_FOR_DAYS = 10
 
 
 async def get_average_end_of_day_loan_balance(
@@ -32,43 +39,64 @@ async def get_average_end_of_day_loan_balance(
 
     institutions = await api_client.institutions.get(user_uuid=user_uuid)
 
-    # subset to only fetch data for institutions known to contain loan-type accounts for the user
-    institutions_w_loan = []
-    for inst in institutions:
-        if "loan" in inst["account_types"]:
-            institutions_w_loan.append(inst)
-
     # We pull an additional 10 days of balance records before the time window because
     # balances are forward filled in time, so this gives us a higher likelihood of
     # beginning the period of interest with valid balance records for each institution
     # rather than containing null values for each institution.
-    inst_coroutines = []
-    for institution in institutions_w_loan:
-        inst_coroutines.append(
+    balances_coroutines = []
+    transactions_coroutines = []
+    for institution in institutions:
+        balances_coroutines.append(
             api_client.balances.get(
                 user_uuid=user_uuid,
                 institution_id=institution["institution_id"],
-                utc_starttime=utc_starttime - timedelta(days=10),
+                utc_starttime=utc_starttime - timedelta(days=BALANCE_VALID_FOR_DAYS),
                 utc_endtime=utc_endtime,
-                account_types=["loan"],
+            )
+        )
+        transactions_coroutines.append(
+            api_client.transactions.get(
+                user_uuid=user_uuid,
+                institution_id=institution["institution_id"],
+                utc_starttime=utc_starttime,
+                utc_endtime=utc_endtime,
             )
         )
 
-    balances_by_institution = await asyncio.gather(*inst_coroutines)
+    balances_by_institution = await asyncio.gather(*balances_coroutines)
+    transactions_by_institution = await asyncio.gather(*transactions_coroutines)
 
     balances_flattened = []
     for ix, balances in enumerate(balances_by_institution):
-        institution_id = institutions_w_loan[ix]["institution_id"]
+        institution_id = institutions[ix]["institution_id"]
         # We append the institution_id to each record so that we can group the records
         # by institution_id and account_id
         for balance in balances:
             balance["institution_id"] = institution_id
             balances_flattened.append(balance)
 
+    # if we have no balance records whatsoever over the target time-period, then return null
     if len(balances_flattened) == 0:
         return None
 
+    transactions_flattened = []
+    for ix, transactions in enumerate(transactions_by_institution):
+        for transaction in transactions:
+            transactions_flattened.append(transaction)
+
+    transactions_df = pd.DataFrame(transactions_flattened)
+    transactions_df["timestamp"] = pd.to_datetime(transactions_df["timestamp"])
+    transactions_df = transactions_df.sort_values("timestamp")
+    transactions_df["yyyymmdd"] = transactions_df["timestamp"].dt.floor("D")
+
     balances_df = pd.DataFrame(balances_flattened)
+    balances_df = balances_df[balances_df["account_type"] == "loan"]
+
+    # if we did not exit above (hence have some balance data), but, don't have loan-account data,
+    # then assume that the user has no loan accounts, and an appropriate avg_eod_loan_balance is zero
+    if len(balances_df) == 0:
+        return 0.0
+
     balances_df["timestamp"] = pd.to_datetime(balances_df["timestamp"])
     balances_df = balances_df.sort_values("timestamp")
     balances_df["yyyymmdd"] = balances_df["timestamp"].dt.floor("D")
@@ -81,10 +109,10 @@ async def get_average_end_of_day_loan_balance(
     )
 
     # Carry balance amounts forward in time
+    index = pd.date_range(utc_starttime, utc_endtime, freq="D", name="yyyymmdd")
     ffilled_balances = (
         eod_balances.groupby(["institution_id", "account_id"])["balance"]
-        .resample("1D", kind="timestamp")
-        .ffill()
+        .apply(lambda df: df.reindex(index).ffill(limit=BALANCE_VALID_FOR_DAYS))
         .reset_index()
     )
 
@@ -95,9 +123,18 @@ async def get_average_end_of_day_loan_balance(
     if len(ffilled_balances_in_time_window) == 0:
         return None
 
-    daily_total_balance = ffilled_balances_in_time_window.groupby(["yyyymmdd"])["balance"].sum()
-    average_end_of_day_loan_balance = daily_total_balance.mean()
-    return average_end_of_day_loan_balance
+    daily_total_balance = ffilled_balances_in_time_window.groupby(["yyyymmdd"])[
+        "balance"
+    ].sum(min_count=1)
+
+    # Include only balances on days the user received a balance or transaction
+    active_days = pd.concat(
+        [balances_df["yyyymmdd"], transactions_df["yyyymmdd"]]
+    ).unique()
+    row_mask = daily_total_balance.index.isin(active_days)
+    daily_total_balance_on_active_days = daily_total_balance.loc[row_mask]
+
+    return daily_total_balance_on_active_days.mean()
 
 
 if __name__ == "__main__":
@@ -117,7 +154,6 @@ if __name__ == "__main__":
             utc_starttime=utc_starttime,
             utc_endtime=utc_endtime,
         )
-
         print(average_end_of_day_loan_balance)
 
     asyncio.run(main())

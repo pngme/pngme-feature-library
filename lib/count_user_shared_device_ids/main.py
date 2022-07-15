@@ -9,26 +9,25 @@ async def get_count_user_shared_device_ids(
     api_client: AsyncClient,
     user_uuid: str,
     utc_starttime: datetime,
-    utc_endtime: datetime
-    ) -> Optional[int]:
-    """ Returns the number of users with same device as the provided one within a time window
+    utc_endtime: datetime,
+) -> Optional[int]:
+    """Returns the number of users with same device as the provided one within a time window
 
         i.e.: This number of users can be used to infer the number of sim swaps, as they reflect how the same
         device is used with different phone numbers.
-    
+
     Args:
         api_client: Pngme Async API client
         user_uuid: Pngme mobile phone user_uuid
         utc_starttime: the UTC time to start the time window
         utc_endtime: the UTC time to end the time window
-        
+
     Returns:
         Returns the number of users with same device as the provided one
             If user_uuid is not found, returns None
-            
+
     """
-   
-    
+
     # STEP 1: Search for user with the provided user_uuid
     users = await api_client.users.get(search=user_uuid)
 
@@ -39,8 +38,8 @@ async def get_count_user_shared_device_ids(
     # STEP 3: Searching by user_uuid either returns a list of one user or an empty list
     #         As we know that the list is not empty now, we can safely take the first element
     user = users[0]
-    
-    # STEP 4: Search for users with the same device id 
+
+    # STEP 4: Search for users with the same device id
     #         Important! The original user is included in the response
     same_device_users = await api_client.users.get(search=user["device_id"])
 
@@ -53,7 +52,9 @@ async def get_count_user_shared_device_ids(
             # of the original user being counted only if its updated_at is within the time window
             continue
         updated_at = datetime.fromisoformat(same_device_user["updated_at"])
-        if updated_at <= utc_endtime.replace(tzinfo=timezone.utc) and updated_at >= utc_starttime.replace(tzinfo=timezone.utc):
+        if updated_at <= utc_endtime.replace(
+            tzinfo=timezone.utc
+        ) and updated_at >= utc_starttime.replace(tzinfo=timezone.utc):
             count += 1
 
     return count
@@ -83,7 +84,6 @@ if __name__ == "__main__":
             user_uuid,
             utc_starttime,
             utc_endtime,
-
         )
         print(count_of_user_shared_device_ids)
 
