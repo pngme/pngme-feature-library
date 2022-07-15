@@ -52,7 +52,7 @@ async def get_data_recency_minutes(
             )
         )
         alerts_inst_coroutines.append(
-            api_client.balances.get(
+            api_client.alerts.get(
                 user_uuid=user_uuid,
                 institution_id=inst["institution_id"],
                 utc_starttime=utc_starttime,
