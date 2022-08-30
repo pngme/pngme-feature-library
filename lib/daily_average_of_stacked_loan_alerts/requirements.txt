@@ -1,0 +1,2 @@
+pandas
+pngme-api == 0.10.0
