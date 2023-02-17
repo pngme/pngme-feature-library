@@ -6,7 +6,9 @@
 
 <h3>🚨Depreaction Notice🚨</h3>
 
-Pngme Feature Library is no longer supported, as of February 17, 2023. Please consider using Pngme's [/decision APIs](https://developers.api.pngme.com/reference/getkenyadecision) instead
+Pngme Feature Library is no longer supported, as of February 17, 2023. Please consider using Pngme's `/decision` APIs instead:
+- [Risk score (Kenya)](https://developers.api.pngme.com/reference/getkenyadecision)
+- [Risk score (Nigeria)](https://developers.api.pngme.com/reference/getnigeriadecision)
 
 A collection of code examples which generate modelling features for a mobile phone user using [Pngme's Python Client](https://pypi.org/project/pngme-api/) for [Pngme's REST APIs](https://developers.api.pngme.com/reference/).
 
