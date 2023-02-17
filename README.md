@@ -2,7 +2,7 @@
   <img src="https://admin.pngme.com/logo.png" alt="Pngme" width="100" height="100">
 </p>
 
-<h3>🚨Depreaction Notice🚨</h3>
+<h3>🚨Deprecation Notice🚨</h3>
 
 Pngme Feature Library is no longer supported, as of February 17, 2023. Please consider using Pngme's `/decision` APIs instead:
 - [Risk score (Kenya)](https://developers.api.pngme.com/reference/getkenyadecision)
