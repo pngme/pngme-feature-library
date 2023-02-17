@@ -4,6 +4,10 @@
 
 <h3 align="center">Pngme Feature Library</h3>
 
+<h3>🚨Depreaction Notice🚨</h3>
+
+Pngme Feature Library is no longer supported, as of February 17, 2023. Please consider using Pngme's [/decision APIs](https://developers.api.pngme.com/reference/getkenyadecision) instead
+
 A collection of code examples which generate modelling features for a mobile phone user using [Pngme's Python Client](https://pypi.org/project/pngme-api/) for [Pngme's REST APIs](https://developers.api.pngme.com/reference/).
 
 ## Features
