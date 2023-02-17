@@ -2,6 +2,12 @@
   <img src="https://admin.pngme.com/logo.png" alt="Pngme" width="100" height="100">
 </p>
 
+<h3>🚨Deprecation Notice🚨</h3>
+
+Pngme Feature Library is no longer supported, as of February 17, 2023. Please consider using Pngme's `/decision` APIs instead:
+- [Risk score (Kenya)](https://developers.api.pngme.com/reference/getkenyadecision)
+- [Risk score (Nigeria)](https://developers.api.pngme.com/reference/getnigeriadecision)
+
 <h3 align="center">Pngme Feature Library</h3>
 
 A collection of code examples which generate modelling features for a mobile phone user using [Pngme's Python Client](https://pypi.org/project/pngme-api/) for [Pngme's REST APIs](https://developers.api.pngme.com/reference/).
